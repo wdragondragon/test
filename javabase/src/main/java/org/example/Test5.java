@@ -1,13 +1,11 @@
 package org.example;
 
-import io.searchbox.core.Cat;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import org.apache.commons.lang3.time.FastDateFormat;
+
+import java.text.ParseException;
+import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * @Author JDragon
@@ -16,27 +14,25 @@ import java.util.stream.Collectors;
  * @Des:
  */
 public class Test5 {
-    private static int sum = 0;
-    private static int SCORE = 90;
+    static String datetimeFormat = "yyyy-MM-dd HH:mm:ss";
 
-    public static void main(String[] args) {
-//        compute(10, 0);
-//        System.out.println(sum);
-        Test4.Job job = new Test4.Job();
-    }
+    static TimeZone timeZoner = TimeZone.getTimeZone("GMT+8");
 
-    public static void compute(int num, int scores) {
-        if (num <= 0 || scores > SCORE) {
-            return;
-        }
-        if (num == 1) {
-            if (scores + 10 >= SCORE) {
-                sum++;
-                return;
-            }
-        }
-        for (int i = 0; i <= 10; i++) {
-            compute(num - 1, scores + i);
-        }
+    public static void main(String[] args) throws ParseException {
+
+        FastDateFormat dateFormatter = FastDateFormat.getInstance(
+                datetimeFormat, timeZoner);
+
+        long time = new Date().getTime();
+
+        Date parse = dateFormatter.parse("2021-08-09 00:00:00");
+        System.out.println(parse);
+
+        parse = dateFormatter.parse("2021-08-09 00:00:00");
+        System.out.println(parse);
+
+
+        parse = dateFormatter.parse(String.valueOf(time));
+        System.out.println(parse);
     }
 }

@@ -3,6 +3,9 @@ package org.example.quartz;
 import lombok.Setter;
 import org.quartz.*;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * @Author: Jdragon
  * @email: 1061917196@qq.com
@@ -24,8 +27,11 @@ public class HelloJob implements Job {
 
         String doSomething = jobDataMap.getString("do");
 
+        Date date = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+        System.out.println("exec time:" + simpleDateFormat.format(date));
         System.err.println(name + " Hello! " + doSomething);
-        System.out.println("triggerName:"+key.getName()+" jobName:"+key1.getName());
+        System.out.println("triggerName:" + key.getName() + " jobName:" + key1.getName());
     }
 }

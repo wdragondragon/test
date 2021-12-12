@@ -1,15 +1,10 @@
 package org.example.kfk;
 
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -17,15 +12,14 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * @author tfq
- * @date 2020/4/29 10:10
+ * @Author JDragon
+ * @Date 2021.12.03 下午 3:46
+ * @Email 1061917196@qq.com
+ * @Des:
  */
-public class KafkaGetMessage {
+public class KafkaOffset {
     public static void main(String[] args) {
-        getMessage("kafka_test_3");
-    }
-
-    public static void getMessage(String topic) {
+        String topic = "kafka_test_4";
         String brokerList = "10.194.188.94:9092,10.194.188.95:9092,10.194.188.96:9092";
         Properties properties = new Properties();
         properties.put("bootstrap.servers", brokerList);
@@ -37,15 +31,23 @@ public class KafkaGetMessage {
         properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");//key 序列化类
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");//value序列化类
         KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(properties);
-        kafkaConsumer.subscribe(Collections.singletonList(topic));
-        while (true) {
-            ConsumerRecords<String, String> records = kafkaConsumer.poll(100);
-            for (ConsumerRecord<String, String> record : records) {
-                System.out.printf("offset = %d, value = %s", record.offset(), record.value());
-                System.out.println("=====================>");
-            }
-
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        List<PartitionInfo> partitionInfos = kafkaConsumer.partitionsFor(topic);
+        for (PartitionInfo partitionInfo : partitionInfos) {
+            int partition = partitionInfo.partition();
+            TopicPartition topicPartition = new TopicPartition(topic, partition);
+            kafkaConsumer.assign(Collections.singletonList(topicPartition));
+            long position = kafkaConsumer.position(topicPartition);
+            System.out.println(partition + ":" + position);
         }
+
+        for (PartitionInfo partitionInfo : partitionInfos) {
+            TopicPartition topicPartition = new TopicPartition(topic,partitionInfo.partition());
+            OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(0L);
+            offsets.put(topicPartition,offsetAndMetadata);
+        }
+
+        kafkaConsumer.commitSync(offsets);
 
     }
 }

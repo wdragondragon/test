@@ -29,6 +29,8 @@ public class QuartzTest {
                 .storeDurably()
                 .build();
 
+
+
         TriggerKey triggerKey = TriggerKey.triggerKey("myTrigger", "group1");
         // Trigger the job to run now, and then every 40 seconds
         Trigger trigger = TriggerBuilder.newTrigger()

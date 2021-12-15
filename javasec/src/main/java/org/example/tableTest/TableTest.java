@@ -2,8 +2,6 @@ package org.example.tableTest;
 
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 

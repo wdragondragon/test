@@ -32,12 +32,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.jdragon</groupId>
             <artifactId>jdragon-common</artifactId>
             <version>1.0-SNAPSHOT</version>
@@ -81,10 +75,6 @@
                 <plugin>
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.7.1</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-project-info-reports-plugin</artifactId>
-                    <version>3.0.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>

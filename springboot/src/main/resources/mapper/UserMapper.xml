@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jdragon.springboot.user.mapper.UserMapper2">
+    <select id="selectUserList" resultType="com.jdragon.springboot.user.pojo.User">
+        select username,age from user
+    </select>
+
+    <select id="selectUserByName" parameterType="string" resultType="com.jdragon.springboot.user.pojo.User">
+        select username,age from user where username=#{username}
+    </select>
+</mapper>

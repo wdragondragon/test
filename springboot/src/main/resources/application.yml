@@ -1,0 +1,61 @@
+server:
+  port: 8082
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+#  h2:
+#    console:
+#      path: /h2-console
+#      enabled: true
+#      settings:
+#        trace: true
+#        web-allow-others: true
+
+  # h2
+  datasource:
+#    schema: classpath:db/schema.sql
+#    data: classpath:db/data.sql
+#    url: jdbc:h2:file:~/db;MV_STORE=FALSE;MODE=MYSQL;AUTO_SERVER=TRUE
+#    driver-class-name: org.h2.Driver
+#    username: sa
+#    sql-script-encoding: utf-8
+#    password: 123
+
+#    url: jdbc:h2:mem:testdbsa #内存模式
+#    data-password: 123
+
+#  mysql
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://remotehost:3307/test?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: 951753
+  http:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
+  redis:
+    host: remotehost
+    port: 9736
+  rabbitmq:
+    host: remotehost
+    username: guest
+    password: guest
+    virtual-host: /
+    port: 5672
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: manual
+        concurrency: 1
+        max-concurrency: 1
+        retry:
+          enabled: true
+    publisher-confirm-type: correlated
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:/mapper/*Mapper.xml
+  type-aliases-package: com.jdragon.springboot.user.pojo

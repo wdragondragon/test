@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jdragon.springboot.homework.mapper.ShopCardMapper">
+
+    <select id="queryCard" parameterType="string" resultType="com.jdragon.springboot.homework.entity.ShopCard">
+        select * from shop_card where card_no=#{cardNo}
+    </select>
+
+    <insert id="createCard" parameterType="com.jdragon.springboot.homework.entity.ShopCard">
+        insert into shop_card(holder_name,card_no,card_balance) values(#{shopCard.holderName},#{shopCard.cardNo},#{shopCard.cardBalance})
+    </insert>
+
+    <update id="changeBalance">
+        update shop_card set card_balance=card_balance+#{balance} where card_no=#{cardNo}
+    </update>
+</mapper>

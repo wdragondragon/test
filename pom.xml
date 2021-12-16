@@ -11,12 +11,13 @@
     <modules>
         <module>javasec</module>
         <module>javabase</module>
-        <module>RfidmoduleApi</module>
         <module>springboot</module>
         <module>mianshi</module>
         <module>netty</module>
         <module>jvm</module>
         <module>database</module>
+        <module>spring-quartz</module>
+        <module>spring-redis-mq</module>
     </modules>
 
     <name>test</name>

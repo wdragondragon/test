@@ -1,0 +1,6 @@
+[submodule "spring-redis-mq"]
+	path = spring-redis-mq
+	url = http://gitlab.tyu.wiki/jdragon/spring-redis-mq.git
+[submodule "spring-quartz"]
+	path = spring-quartz
+	url = http://gitlab.tyu.wiki/jdragon/spring-quartz.git

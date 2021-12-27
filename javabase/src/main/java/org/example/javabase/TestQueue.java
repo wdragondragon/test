@@ -1,7 +1,7 @@
 package org.example.javabase;
 
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * @Author JDragon
@@ -10,7 +10,8 @@ import java.util.concurrent.LinkedBlockingDeque;
  * @Des:
  */
 public class TestQueue {
-    public static void main(String[] args) {
-        BlockingDeque<String> linkedBlockingQueue = new LinkedBlockingDeque<>();
+    public static void main(String[] args) throws UnknownHostException {
+        InetAddress localHost = InetAddress.getLocalHost();
+        System.out.println(localHost);
     }
 }

@@ -18,5 +18,6 @@
         <module>neo4j</module>
         <module>kingbase8</module>
         <module>gbase8a</module>
+        <module>rabbitmq</module>
     </modules>
 </project>

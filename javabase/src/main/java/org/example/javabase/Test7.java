@@ -1,11 +1,7 @@
 package org.example.javabase;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @Author JDragon
@@ -14,24 +10,22 @@ import java.util.concurrent.Executors;
  * @Des:
  */
 public class Test7 {
+    final String regex = "([^,]*?):(\\d*)";
+    final String string = "192.168.1.1:9092,192.168.1.2:9092,192.168.1.2:9092";
+    final String subst = "";
+
+    final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
+    final Matcher matcher = pattern.matcher(string);
     public static void main(String[] args) throws InterruptedException {
-        List<Integer> integerList = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
-        int execNum = 3;
-        ConcurrentLinkedQueue<Integer> concurrentLinkedQueue = new ConcurrentLinkedQueue<>(integerList);
-        ExecutorService exec = Executors.newFixedThreadPool(execNum);
-        CountDownLatch latch = new CountDownLatch(execNum);
-        for (int i = 0; i < execNum; i++) {
-            exec.submit(() -> {
-                Integer num;
-                while ((num = concurrentLinkedQueue.poll()) != null) {
-                    System.out.println(num);
-                }
-                latch.countDown();
-            });
+        Test7 test7 = new Test7();
+        test7.test();
+    }
+
+    public void test(){
+        while (matcher.find()) {
+            System.out.println(matcher.group(1));
+            System.out.println(matcher.group(2));
         }
-        latch.await();
-        exec.shutdown();
-        System.out.println("wi");
     }
 
 

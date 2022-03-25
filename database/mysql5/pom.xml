@@ -5,26 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>test</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>mysql5</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>javasec</module>
-        <module>javabase</module>
-        <module>springboot</module>
-        <module>mianshi</module>
-        <module>netty</module>
-        <module>jvm</module>
-        <module>database</module>
-        <module>spring-quartz</module>
-        <module>spring-redis-mq</module>
-        <module>leetcode</module>
-        <module>peer2peer</module>
-    </modules>
 
-    <name>test</name>
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
+    <name>mysql5</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -34,9 +18,21 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.jdragon</groupId>
-            <artifactId>jdragon-common</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.34</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.5.8</version>
         </dependency>
     </dependencies>
 
@@ -77,6 +73,10 @@
                 <plugin>
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.7.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-project-info-reports-plugin</artifactId>
+                    <version>3.0.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>

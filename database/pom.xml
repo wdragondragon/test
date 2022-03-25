@@ -19,5 +19,7 @@
         <module>kingbase8</module>
         <module>gbase8a</module>
         <module>rabbitmq</module>
+        <module>hive2</module>
+        <module>mysql5</module>
     </modules>
 </project>

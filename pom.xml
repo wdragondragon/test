@@ -18,6 +18,7 @@
         <module>database</module>
         <module>spring-quartz</module>
         <module>spring-redis-mq</module>
+        <module>leetcode</module>
     </modules>
 
     <name>test</name>

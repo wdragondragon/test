@@ -21,5 +21,8 @@
         <module>rabbitmq</module>
         <module>hive2</module>
         <module>mysql5</module>
+        <module>elasticsearch</module>
+        <module>elasticsearch-hign-level</module>
+        <module>ftp</module>
     </modules>
 </project>

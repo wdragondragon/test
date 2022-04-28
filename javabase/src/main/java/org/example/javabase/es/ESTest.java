@@ -59,7 +59,6 @@ public class ESTest {
                 .Builder("http://10.198.246.28:9400")
                 .multiThreaded(true)
                 .build());
-
         return  factory.getObject();
     }
 

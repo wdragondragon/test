@@ -68,7 +68,7 @@ public class KafkaSendMessage {
 //                jsonObject.put("username", "username" + i);
                 String json = "{'id': 10, 'dust_concentration': 466, 'dust_concentration_five_min': 459, 'monitor_time': '2022-01-27 10:24:29', 'monitor_site': '你好', 'monitor_code': 'hkl', 'monitor_lon': 727, 'monitor_lat': 276}";
                 JSONObject jsonObject = JSONObject.parseObject(json);
-                ProducerRecord<String, String> record = new ProducerRecord<>("ys_dust_sensor_topic_outside", jsonObject.toJSONString());
+                ProducerRecord<String, String> record = new ProducerRecord<>("kafka_test_0415_0", jsonObject.toJSONString());
                 // 发送消息
 //                ProducerRecord<String, String> record = new ProducerRecord<>("kafka_test_4", i + "{sp}" + "username" + i);
                 producer.send(record);

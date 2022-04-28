@@ -5,23 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>test</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>elasticsearch</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>javasec</module>
-        <module>javabase</module>
-        <module>springboot</module>
-        <module>mianshi</module>
-        <module>netty</module>
-        <module>jvm</module>
-        <module>database</module>
-        <module>spring-quartz</module>
-        <module>spring-redis-mq</module>
-        <module>peer2peer</module>
-    </modules>
 
-    <name>test</name>
+    <name>elasticsearch</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -31,9 +18,25 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.jdragon</groupId>
-            <artifactId>jdragon-common</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.searchbox</groupId>
+            <artifactId>jest-common</artifactId>
+            <version>6.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.searchbox</groupId>
+            <artifactId>jest</artifactId>
+            <version>6.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>6.3.1</version>
         </dependency>
     </dependencies>
 

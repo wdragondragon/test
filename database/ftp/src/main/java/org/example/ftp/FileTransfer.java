@@ -1,5 +1,5 @@
 package org.example.ftp;
-import org.apache.commons.net.ftp.FTPClient;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,9 +90,8 @@ public class FileTransfer {
     public String toUnit(long size) {
         List<Integer> numList = new LinkedList<>();
         while (size != 0) {
-            long remainder = (size & 1023);
+            numList.add((int) (size & 1023));
             size = size >> 10;
-            numList.add((int) (remainder));
         }
         StringBuilder progress = new StringBuilder();
         for (int i = numList.size() - 1; i >= 0; i--) {
@@ -126,94 +125,82 @@ public class FileTransfer {
 
 
     public void localToFtp() throws Exception {
-        FTPClient targetFtp = FTPClientCreator.initFTPClient("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-
-        FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
-        FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-local-ftp.jar");
-        LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetFTPFileRecord));
-        FTPClientCreator.disconnect(targetFtp);
+        try (FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
+            FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
+            FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-local-ftp.jar");
+            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetFTPFileRecord));
+        }
     }
 
     public void localToSftp() throws Exception {
-        SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");
-
-        sftp.connect();
-        FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
-        FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-local-sftp.jar");
-        LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetSFTPFileRecord));
-        sftp.close();
+        try (SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
+            sftp.connect();
+            FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
+            FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-local-sftp.jar");
+            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetSFTPFileRecord));
+        }
     }
 
 
     public void ftpToLocal() throws Exception {
+        try (FTPClientCloseable sourceFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
+            FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
+            FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-ftp-local.jar");
 
-        FTPClient sourceFtp = FTPClientCreator.initFTPClient("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-        FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
-        FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-ftp-local.jar");
-
-        LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetLocalFileRecord));
-        FTPClientCreator.disconnect(sourceFtp);
+            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetLocalFileRecord));
+        }
     }
 
     public void ftpToFtp() throws Exception {
-        FTPClient sourceFtp = FTPClientCreator.initFTPClient("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-        FTPClient targetFtp = FTPClientCreator.initFTPClient("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-        FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
-        FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-ftp-ftp.jar");
-
-        LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetFTPFileRecord));
-        FTPClientCreator.disconnect(sourceFtp);
-        FTPClientCreator.disconnect(targetFtp);
+        try (FTPClientCloseable sourceFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
+             FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
+            FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
+            FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-ftp-ftp.jar");
+            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetFTPFileRecord));
+        }
     }
 
 
     public void ftpToSftp() throws Exception {
-        FTPClient sourceFtp = FTPClientCreator.initFTPClient("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-        SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");
-
-        sftp.connect();
-        FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
-        FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-ftp-sftp.jar");
-
-        LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetSFTPFileRecord));
-        FTPClientCreator.disconnect(sourceFtp);
-        sftp.close();
+        try (FTPClientCloseable sourceFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
+             SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
+            sftp.connect();
+            FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
+            FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-ftp-sftp.jar");
+            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetSFTPFileRecord));
+        }
     }
 
 
     public void sftpToLocal() throws Exception {
-        SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");
-
-        sftp.connect();
-        FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-local-sftp.jar");
-        FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-sftp-local.jar");
-        LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetLocalFileRecord));
-        sftp.close();
+        try (SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
+            sftp.connect();
+            FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-local-sftp.jar");
+            FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-sftp-local.jar");
+            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetLocalFileRecord));
+        }
     }
 
 
     public void sftpToFtp() throws Exception {
-        FTPClient targetFtp = FTPClientCreator.initFTPClient("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-        SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");
-
-        sftp.connect();
-        FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-local-sftp.jar");
-        FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-sftp-ftp.jar");
-        LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetFTPFileRecord));
-        FTPClientCreator.disconnect(targetFtp);
-        sftp.close();
+        try (FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
+             SFTP sftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
+            sftp.connect();
+            FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftp, "/data/ftp/user_test/test-local-sftp.jar");
+            FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-sftp-ftp.jar");
+            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetFTPFileRecord));
+        }
     }
 
 
     public void sftpToSftp() throws Exception {
-        SFTP sourceSftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");
-        SFTP targetSftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");
-        sourceSftp.connect();
-        targetSftp.connect();
-        FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sourceSftp, "/data/ftp/user_test/test-local-sftp.jar");
-        FileRecord targetSFTPFileRecord = new SFTPFileRecord(targetSftp, "/data/ftp/user_test/test-sftp-sftp.jar");
-        LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetSFTPFileRecord));
-        sourceSftp.close();
-        targetSftp.close();
+        try (SFTP sourceSftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");
+             SFTP targetSftp = new SFTP("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
+            sourceSftp.connect();
+            targetSftp.connect();
+            FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sourceSftp, "/data/ftp/user_test/test-local-sftp.jar");
+            FileRecord targetSFTPFileRecord = new SFTPFileRecord(targetSftp, "/data/ftp/user_test/test-sftp-sftp.jar");
+            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetSFTPFileRecord));
+        }
     }
 }

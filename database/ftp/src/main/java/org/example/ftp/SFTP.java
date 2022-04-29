@@ -27,7 +27,7 @@ import java.util.Properties;
  * @Description:
  */
 @Slf4j
-public class SFTP {
+public class SFTP implements AutoCloseable{
 
     private String host;
 

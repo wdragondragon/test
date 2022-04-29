@@ -12,10 +12,15 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @Author JDragon
@@ -34,7 +39,7 @@ public class FileTransfer {
         put(4, "gb");
     }};
 
-    public UploadStatus startTransfer(FileRecord sourceFileRecord, FileRecord targetFileRecord) throws IOException {
+    public UploadStatus startTransfer(FileRecord sourceFileRecord, FileRecord targetFileRecord, int concurrency) throws IOException {
         try {
             sourceFileRecord.mkParentDir();
             targetFileRecord.mkParentDir();
@@ -56,32 +61,29 @@ public class FileTransfer {
             }
         }
 
-        if (skipSize == 0L) {
-            if (startTransfer(sourceFileRecord.getInputStream(skipSize), targetFileRecord.getOutputStream(skipSize), skipSize)) {
-                return UploadStatus.Upload_New_File_Success;
-            } else {
-                return UploadStatus.Upload_New_File_Failed;
-            }
-        } else {
-            //开始断点续传
-            if (startTransfer(sourceFileRecord.getInputStream(skipSize), targetFileRecord.getOutputStream(skipSize), skipSize)) {
-                return UploadStatus.Upload_From_Break_Success;
-            } else if (targetFileRecord.delete()) {
-                if (startTransfer(sourceFileRecord.getInputStream(skipSize), targetFileRecord.getOutputStream(skipSize), skipSize)) {
-                    return UploadStatus.Upload_New_File_Success;
-                } else {
-                    return UploadStatus.Upload_New_File_Failed;
-                }
-            } else {
-                return UploadStatus.Delete_Remote_Faild;
-            }
+        ExecutorService exec = Executors.newFixedThreadPool(concurrency);
+        CountDownLatch latch = new CountDownLatch(concurrency);
+        List<FilePart> filePartList = split(sourceFileRecord.getSize(), skipSize, concurrency, latch);
+
+        for (FilePart filePart : filePartList) {
+            FileTransferThread fileTransferThread = new FileTransferThread(sourceFileRecord, targetFileRecord, filePart, new AtomicLong(skipSize));
+            exec.execute(fileTransferThread);
         }
+        try {
+            latch.await();
+            exec.shutdown();
+        } catch (InterruptedException e) {
+            LOG.error("latch等待异常", e);
+        }
+        return UploadStatus.Upload_New_File_Success;
     }
 
-    public boolean startTransfer(InputStream inputStream, OutputStream outputStream, long skipSize) {
+    public boolean startTransfer(FileRecord sourceFileRecord, FileRecord targetFileRecord, long start, long end) {
         try {
+            InputStream inputStream = sourceFileRecord.getInputStream(start);
+            OutputStream outputStream = targetFileRecord.getOutputStream(start);
             byte[] bytes = new byte[10240];
-            long count = skipSize;
+            long count = start;
             int readCount;
             while ((readCount = inputStream.read(bytes)) != -1) {
                 outputStream.write(bytes, 0, readCount);
@@ -95,6 +97,22 @@ public class FileTransfer {
             return false;
         }
         return true;
+    }
+
+    public List<FilePart> split(long size, long skip, int num, CountDownLatch countDownLatch) {
+        if (num == 1) {
+            return Collections.singletonList(new FilePart(1, skip, size, countDownLatch));
+        }
+        List<FilePart> filePartList = new LinkedList<>();
+        long part = (size - skip) / num;
+        long startTemp = skip;
+        for (int i = 0; i < num - 1; i++) {
+            long end = startTemp + part;
+            filePartList.add(new FilePart(i + 1, startTemp, end, countDownLatch));
+            startTemp = end;
+        }
+        filePartList.add(new FilePart(num, startTemp, size, countDownLatch));
+        return filePartList;
     }
 
     public String toUnit(long size) {
@@ -113,24 +131,27 @@ public class FileTransfer {
     public static void main(String[] args) throws Exception {
         FileTransfer fileTransfer = new FileTransfer();
 
-        fileTransfer.localToLocal();
-        fileTransfer.localToFtp();
+//        fileTransfer.localToLocal();
+//        fileTransfer.localToFtp();
         fileTransfer.localToSftp();
 
-        fileTransfer.ftpToLocal();
-        fileTransfer.ftpToFtp();
-        fileTransfer.ftpToSftp();
+//        fileTransfer.ftpToLocal();
+//        fileTransfer.ftpToFtp();
+//        fileTransfer.ftpToSftp();
 
-        fileTransfer.sftpToLocal();
-        fileTransfer.sftpToFtp();
-        fileTransfer.sftpToSftp();
+//        fileTransfer.sftpToLocal();
+//        fileTransfer.sftpToFtp();
+//        fileTransfer.sftpToSftp();
     }
+
+
+    int concurrency = 2;
 
 
     public void localToLocal() throws Exception {
         FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
         FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-local-local.jar");
-        LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetLocalFileRecord));
+        LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetLocalFileRecord, concurrency));
     }
 
 
@@ -138,7 +159,7 @@ public class FileTransfer {
         try (FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
             FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
             FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-local-ftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetFTPFileRecord));
+            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetFTPFileRecord, concurrency));
         }
     }
 
@@ -147,7 +168,9 @@ public class FileTransfer {
             sftpClientCloseable.connect();
             FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
             FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetSFTPFileRecord));
+            final OutputStream outputStream = targetSFTPFileRecord.getOutputStream(0L);
+            final OutputStream outputStream2 = targetSFTPFileRecord.getOutputStream(4L);
+            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetSFTPFileRecord, concurrency));
         }
     }
 
@@ -157,7 +180,7 @@ public class FileTransfer {
             FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
             FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-ftp-local.jar");
 
-            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetLocalFileRecord));
+            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetLocalFileRecord, concurrency));
         }
     }
 
@@ -166,7 +189,7 @@ public class FileTransfer {
              FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
             FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
             FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-ftp-ftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetFTPFileRecord));
+            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetFTPFileRecord, concurrency));
         }
     }
 
@@ -177,7 +200,7 @@ public class FileTransfer {
             sftpClientCloseable.connect();
             FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
             FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-ftp-sftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetSFTPFileRecord));
+            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetSFTPFileRecord, concurrency));
         }
     }
 
@@ -187,7 +210,7 @@ public class FileTransfer {
             sftpClientCloseable.connect();
             FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
             FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-sftp-local.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetLocalFileRecord));
+            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetLocalFileRecord, concurrency));
         }
     }
 
@@ -198,7 +221,7 @@ public class FileTransfer {
             sftpClientCloseable.connect();
             FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
             FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-sftp-ftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetFTPFileRecord));
+            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetFTPFileRecord, concurrency));
         }
     }
 
@@ -210,7 +233,7 @@ public class FileTransfer {
             targetSftpClientCloseable.connect();
             FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sourceSftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
             FileRecord targetSFTPFileRecord = new SFTPFileRecord(targetSftpClientCloseable, "/data/ftp/user_test/test-sftp-sftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetSFTPFileRecord));
+            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetSFTPFileRecord, concurrency));
         }
     }
 }

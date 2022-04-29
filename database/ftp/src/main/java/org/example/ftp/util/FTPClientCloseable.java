@@ -25,6 +25,7 @@ public class FTPClientCloseable extends FTPClient implements AutoCloseable {
                 enterLocalPassiveMode();
                 //设置以二进制流的方式传输
                 setFileType(FTP.BINARY_FILE_TYPE);
+                return;
             } else {
                 throw new IOException("登录失败：" + getReplyString());
             }

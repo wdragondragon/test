@@ -34,7 +34,7 @@ public class SFTPFileRecord extends FileRecord {
     @Override
     public OutputStream getOutputStream(long skipSize) throws IOException {
         if (skipSize > 0) {
-            return sftpClientCloseable.put(fileFullPath, ChannelSftp.RESUME, skipSize);
+            return sftpClientCloseable.put(fileFullPath, ChannelSftp.OVERWRITE, skipSize);
         } else {
             return sftpClientCloseable.put(fileFullPath, ChannelSftp.OVERWRITE, 0L);
         }

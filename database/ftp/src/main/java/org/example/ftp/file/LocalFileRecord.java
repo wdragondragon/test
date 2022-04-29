@@ -1,4 +1,4 @@
-package org.example.ftp;
+package org.example.ftp.file;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

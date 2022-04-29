@@ -1,4 +1,4 @@
-package org.example.ftp;
+package org.example.ftp.util;
 
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
@@ -27,7 +27,7 @@ import java.util.Properties;
  * @Description:
  */
 @Slf4j
-public class SFTP implements AutoCloseable{
+public class SFTPClientCloseable implements AutoCloseable{
 
     private String host;
 
@@ -44,7 +44,7 @@ public class SFTP implements AutoCloseable{
     private ChannelSftp sftp;// sftp操作类
 
     @Builder
-    public SFTP(String host, int port, String username, String password) {
+    public SFTPClientCloseable(String host, int port, String username, String password) {
         this.host = host;
         this.port = port;
         this.username = username;

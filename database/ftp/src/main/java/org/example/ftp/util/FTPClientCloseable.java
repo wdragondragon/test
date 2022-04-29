@@ -1,4 +1,4 @@
-package org.example.ftp;
+package org.example.ftp.util;
 
 import org.apache.commons.net.PrintCommandListener;
 import org.apache.commons.net.ftp.FTP;

@@ -1,4 +1,4 @@
-package org.example.ftp;
+package org.example.ftp.file;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.net.ftp.FTPClient;

@@ -1,6 +1,7 @@
-package org.example.ftp;
+package org.example.ftp.file;
 
 import com.jcraft.jsch.ChannelSftp;
+import org.example.ftp.util.SFTPClientCloseable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,11 +14,11 @@ import java.io.OutputStream;
  * @Des:
  */
 public class SFTPFileRecord extends FileRecord {
-    private final SFTP sftp;
+    private final SFTPClientCloseable sftpClientCloseable;
 
-    public SFTPFileRecord(SFTP sftp, String fileFullPath) {
+    public SFTPFileRecord(SFTPClientCloseable sftpClientCloseable, String fileFullPath) {
         super(fileFullPath);
-        this.sftp = sftp;
+        this.sftpClientCloseable = sftpClientCloseable;
     }
 
     @Override
@@ -27,33 +28,33 @@ public class SFTPFileRecord extends FileRecord {
 
     @Override
     public long getSize() throws IOException {
-        return sftp.getSize(fileFullPath);
+        return sftpClientCloseable.getSize(fileFullPath);
     }
 
     @Override
     public OutputStream getOutputStream(long skipSize) throws IOException {
         if (skipSize > 0) {
-            return sftp.put(fileFullPath, ChannelSftp.RESUME, skipSize);
+            return sftpClientCloseable.put(fileFullPath, ChannelSftp.RESUME, skipSize);
         } else {
-            return sftp.put(fileFullPath, ChannelSftp.OVERWRITE, 0L);
+            return sftpClientCloseable.put(fileFullPath, ChannelSftp.OVERWRITE, 0L);
         }
     }
 
     @Override
     public InputStream getInputStream(long skipSize) throws IOException {
-        return sftp.get(fileFullPath, skipSize);
+        return sftpClientCloseable.get(fileFullPath, skipSize);
     }
 
     @Override
     public boolean mkParentDir() throws IOException {
-        sftp.mkdir(filePath);
+        sftpClientCloseable.mkdir(filePath);
         return true;
     }
 
     @Override
     public boolean delete() throws IOException {
         if (exists()) {
-            sftp.rm(fileFullPath);
+            sftpClientCloseable.rm(fileFullPath);
         }
         return true;
     }

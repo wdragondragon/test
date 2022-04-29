@@ -1,4 +1,4 @@
-package org.example.ftp;
+package org.example.ftp.file;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -124,7 +124,7 @@
             <version>3.6</version>
         </dependency>
 
-        <!-- sftp+ftp -->
+        <!-- sftpClientCloseable+ftp -->
         <!-- https://mvnrepository.com/artifact/com.jcraft/jsch -->
         <dependency>
             <groupId>com.jcraft</groupId>

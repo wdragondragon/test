@@ -145,7 +145,7 @@ public class FileTransfer {
     }
 
 
-    int concurrency = 2;
+    int concurrency = 1;
 
 
     public void localToLocal() throws Exception {

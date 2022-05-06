@@ -1,6 +1,7 @@
 package org.example.ftp.file;
 
 import com.jcraft.jsch.ChannelSftp;
+import org.example.ftp.util.FileHelper;
 import org.example.ftp.util.SFTPClientCloseable;
 
 import java.io.IOException;
@@ -14,60 +15,59 @@ import java.io.OutputStream;
  * @Des:
  */
 public class SFTPFileRecord extends FileRecord {
-    private SFTPClientCloseable sftpClientCloseable;
 
-    public SFTPFileRecord(SFTPClientCloseable sftpClientCloseable, String fileFullPath) {
+    private final SFTPClientCloseable sftpClientCloseable;
+
+
+    public SFTPFileRecord(FileHelper sftpClientCloseable, String fileFullPath) {
         super(fileFullPath);
-        this.sftpClientCloseable = sftpClientCloseable;
+        this.sftpClientCloseable = (SFTPClientCloseable) sftpClientCloseable;
+    }
+
+    public SFTPFileRecord(FileHelper sftpClientCloseable, String path, String name) {
+        this(sftpClientCloseable, sftpClientCloseable.processingPath(path, name));
     }
 
     @Override
     public boolean exists() throws IOException {
-        synchronized (this) {
-            return getSize() > 0;
-        }
+        return getSize() > 0;
     }
 
     @Override
     public long getSize() throws IOException {
-        synchronized (this) {
-            return sftpClientCloseable.getSize(fileFullPath);
-        }
+        return sftpClientCloseable.getSize(fileFullPath);
     }
 
     @Override
     public OutputStream getOutputStream(long skipSize) throws IOException {
-        synchronized (this) {
-            if (skipSize > 0) {
-                return sftpClientCloseable.put(fileFullPath, ChannelSftp.OVERWRITE, skipSize);
-            } else {
-                return sftpClientCloseable.put(fileFullPath, ChannelSftp.OVERWRITE, 0L);
-            }
+        if (skipSize > 0) {
+            return sftpClientCloseable.getOutputStream(filePath, fileName, ChannelSftp.OVERWRITE, skipSize);
+        } else {
+            return sftpClientCloseable.getOutputStream(filePath, fileName, ChannelSftp.OVERWRITE, 0L);
         }
     }
 
     @Override
     public InputStream getInputStream(long skipSize) throws IOException {
-        synchronized (this) {
-            return sftpClientCloseable.get(fileFullPath, skipSize);
-        }
+        return sftpClientCloseable.getInputStream(filePath, fileName, skipSize);
     }
 
     @Override
     public boolean mkParentDir() throws IOException {
-        synchronized (this) {
-            sftpClientCloseable.mkdir(filePath);
-            return true;
-        }
+        sftpClientCloseable.mkdir(filePath);
+        return true;
     }
 
     @Override
     public boolean delete() throws IOException {
-        synchronized (this) {
-            if (exists()) {
-                sftpClientCloseable.rm(fileFullPath);
-            }
-            return true;
+        if (exists()) {
+            sftpClientCloseable.rm(fileFullPath);
         }
+        return true;
+    }
+
+    @Override
+    public void refresh() throws Exception {
+        sftpClientCloseable.fresh();
     }
 }

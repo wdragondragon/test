@@ -1,5 +1,7 @@
 package org.example.ftp.util;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -8,6 +10,8 @@ import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.example.ftp.file.FileRecord;
+import org.example.ftp.file.SFTPFileRecord;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -18,7 +22,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
+import java.util.Vector;
+import java.util.regex.Pattern;
 
 /**
  * @Author: Jdragon
@@ -27,7 +35,7 @@ import java.util.Properties;
  * @Description:
  */
 @Slf4j
-public class SFTPClientCloseable implements AutoCloseable{
+public class SFTPClientCloseable implements FileHelper {
 
     private String host;
 
@@ -44,11 +52,12 @@ public class SFTPClientCloseable implements AutoCloseable{
     private ChannelSftp sftp;// sftp操作类
 
     @Builder
-    public SFTPClientCloseable(String host, int port, String username, String password) {
+    public SFTPClientCloseable(String host, int port, String username, String password) throws Exception {
         this.host = host;
         this.port = port;
         this.username = username;
         this.password = password;
+        this.connect();
     }
 
     public boolean connect() throws Exception {
@@ -84,6 +93,15 @@ public class SFTPClientCloseable implements AutoCloseable{
         sftp = (ChannelSftp) channel;
         log.info("远端连接成功！");
         return true;
+    }
+
+    @Override
+    public boolean isConnected() {
+        if (null != sftp) {
+            return sftp.isConnected();
+        } else {
+            return false;
+        }
     }
 
     public void close() {
@@ -231,18 +249,24 @@ public class SFTPClientCloseable implements AutoCloseable{
         }
     }
 
-    public InputStream get(String path, long skip) throws IOException {
+    public InputStream getInputStream(String path, String name, long skip) throws IOException {
         try {
-            return sftp.get(path, null, skip);
-        } catch (SftpException e) {
+            if (isConnected() || reConnect()) {
+                return sftp.get(processingPath(path, name), null, skip);
+            }
+            throw new IOException("连接不可用");
+        } catch (Exception e) {
             throw new IOException(e);
         }
     }
 
-    public OutputStream put(String path, int mode, long skip) throws IOException {
+    public OutputStream getOutputStream(String path, String name, int mode, long skip) throws IOException {
         try {
-            return sftp.put(path, null, mode, skip);
-        } catch (SftpException e) {
+            if (isConnected() || reConnect()) {
+                return sftp.put(processingPath(path, name), null, mode, skip);
+            }
+            throw new IOException("连接不可用");
+        } catch (Exception e) {
             throw new IOException(e);
         }
     }
@@ -267,5 +291,38 @@ public class SFTPClientCloseable implements AutoCloseable{
         } catch (SftpException e) {
             throw new IOException(e);
         }
+    }
+
+    @Override
+    public Set<String> listFile(String dir, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Set<String> fileList = new HashSet<>();
+        try {
+            @SuppressWarnings("rawtypes")
+            Vector allFiles = this.sftp.ls(dir);
+            log.debug(String.format("ls: %s", JSON.toJSONString(allFiles,
+                    SerializerFeature.UseSingleQuotes)));
+            for (Object allFile : allFiles) {
+                ChannelSftp.LsEntry le = (ChannelSftp.LsEntry) allFile;
+                if (le.getAttrs().isDir()) {
+                    continue;
+                }
+                String name = le.getFilename();
+                if (pattern.matcher(name).find()) {
+                    fileList.add(name);
+                }
+            }
+        } catch (SftpException e) {
+            String message = String
+                    .format("获取path:[%s] 下文件列表时发生I/O异常,请确认与ftp服务器的连接正常,拥有目录ls权限, errorMessage:%s",
+                            dir, e.getMessage());
+            log.error(message);
+        }
+        return fileList;
+    }
+
+
+    public FileRecord initFile(String path, String name) {
+        return new SFTPFileRecord(this, path, name);
     }
 }

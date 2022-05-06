@@ -1,5 +1,7 @@
 package org.example.ftp.file;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,7 +16,7 @@ public abstract class FileRecord {
 
     protected String fileName;
 
-    protected String filePath;
+    protected final String filePath;
 
     protected String fileFullPath;
 
@@ -29,9 +31,9 @@ public abstract class FileRecord {
 
     public abstract long getSize() throws IOException;
 
-    public abstract OutputStream getOutputStream(long skipSize) throws IOException;
+    public abstract OutputStream getOutputStream(long skipSize) throws Exception;
 
-    public abstract InputStream getInputStream(long skipSize) throws IOException;
+    public abstract InputStream getInputStream(long skipSize) throws Exception;
 
     public abstract boolean mkParentDir() throws IOException;
 
@@ -49,4 +51,9 @@ public abstract class FileRecord {
         return filePath;
     }
 
+    public String md5() throws Exception {
+        return DigestUtils.md5Hex(getInputStream(0L));
+    }
+
+    public void refresh() throws Exception {};
 }

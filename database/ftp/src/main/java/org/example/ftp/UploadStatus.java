@@ -1,5 +1,8 @@
 package org.example.ftp;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * @Author JDragon
  * @Date 2022.04.27 下午 2:16
@@ -14,4 +17,9 @@ public enum UploadStatus {
     Delete_Remote_Faild(),
     Upload_New_File_Success(),
     Upload_New_File_Failed(),
+
+
+    ;
+
+    public static final List<UploadStatus> needFreshStatus = Arrays.asList(Upload_From_Break_Success, Upload_New_File_Success, Upload_New_File_Failed);
 }

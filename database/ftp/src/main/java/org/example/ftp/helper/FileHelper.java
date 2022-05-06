@@ -1,4 +1,4 @@
-package org.example.ftp.util;
+package org.example.ftp.helper;
 
 import org.example.ftp.file.FileRecord;
 

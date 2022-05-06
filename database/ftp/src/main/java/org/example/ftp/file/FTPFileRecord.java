@@ -1,8 +1,8 @@
 package org.example.ftp.file;
 
 import org.apache.commons.net.ftp.FTPFile;
-import org.example.ftp.util.FTPClientCloseable;
-import org.example.ftp.util.FileHelper;
+import org.example.ftp.helper.FTPClientCloseable;
+import org.example.ftp.helper.FileHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

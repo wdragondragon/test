@@ -1,8 +1,7 @@
-package org.example.ftp;
+package org.example.ftp.helper;
 
-import org.example.ftp.util.FTPClientCloseable;
-import org.example.ftp.util.FileHelper;
-import org.example.ftp.util.SFTPClientCloseable;
+import org.example.ftp.Configuration;
+import org.example.ftp.key.ConfigKey;
 
 /**
  * @Author JDragon

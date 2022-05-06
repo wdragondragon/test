@@ -1,7 +1,7 @@
 package org.example.ftp.communication;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.ftp.Key;
+import org.example.ftp.key.Key;
 
 import java.util.HashMap;
 import java.util.LinkedList;

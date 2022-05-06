@@ -1,4 +1,4 @@
-package org.example.ftp.util;
+package org.example.ftp.helper;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;

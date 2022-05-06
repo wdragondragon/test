@@ -3,6 +3,7 @@ package org.example.ftp;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
+import org.example.ftp.key.UploadStatus;
 
 /**
  * @Author JDragon

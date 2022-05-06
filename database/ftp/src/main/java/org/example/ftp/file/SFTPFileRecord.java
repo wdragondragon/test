@@ -1,8 +1,8 @@
 package org.example.ftp.file;
 
 import com.jcraft.jsch.ChannelSftp;
-import org.example.ftp.util.FileHelper;
-import org.example.ftp.util.SFTPClientCloseable;
+import org.example.ftp.helper.FileHelper;
+import org.example.ftp.helper.SFTPClientCloseable;
 
 import java.io.IOException;
 import java.io.InputStream;

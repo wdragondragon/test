@@ -1,4 +1,4 @@
-package org.example.ftp;
+package org.example.ftp.key;
 
 /**
  * @Author JDragon

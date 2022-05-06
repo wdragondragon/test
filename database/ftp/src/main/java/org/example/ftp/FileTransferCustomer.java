@@ -4,7 +4,9 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ftp.communication.Communication;
 import org.example.ftp.file.FileRecord;
-import org.example.ftp.util.FileHelper;
+import org.example.ftp.key.Key;
+import org.example.ftp.helper.FileHelper;
+import org.example.ftp.key.UploadStatus;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -6,9 +6,11 @@ import org.example.ftp.file.FTPFileRecord;
 import org.example.ftp.file.FileRecord;
 import org.example.ftp.file.LocalFileRecord;
 import org.example.ftp.file.SFTPFileRecord;
-import org.example.ftp.util.FTPClientCloseable;
-import org.example.ftp.util.FileHelper;
-import org.example.ftp.util.SFTPClientCloseable;
+import org.example.ftp.helper.FileHelperFactory;
+import org.example.ftp.key.ConfigKey;
+import org.example.ftp.helper.FTPClientCloseable;
+import org.example.ftp.helper.FileHelper;
+import org.example.ftp.helper.SFTPClientCloseable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +34,8 @@ import java.util.concurrent.Executors;
 public class FileTransfer {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileTransfer.class);
-    private int transformerThread = 3;
 
-    private int reportInterval = 3 * 1000;
+    private int transformerThread = 3;
 
     public static void main(String[] args) throws IOException {
         FileTransfer fileTransfer = new FileTransfer();

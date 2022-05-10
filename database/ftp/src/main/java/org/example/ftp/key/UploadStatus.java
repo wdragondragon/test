@@ -10,6 +10,7 @@ import java.util.List;
  * @Des:
  */
 public enum UploadStatus {
+    Source_not_exist(),
     Create_Directory_Fail(),
     File_Exits(),
     Remote_Bigger_Local(),

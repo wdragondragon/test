@@ -28,7 +28,7 @@ public class Communication {
 
     public Communication(String name) {
         this.name = name;
-        CommunicationReporter.reg(name, this);
+        ReportThread.reg(name, this);
         setNumber("lastReportTime", System.currentTimeMillis());
     }
 

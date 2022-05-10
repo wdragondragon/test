@@ -23,7 +23,7 @@ import java.util.concurrent.CountDownLatch;
  * @Des:
  */
 @Slf4j
-public class FileTransferCustomer extends Thread {
+public class FileTransferCustomer implements Runnable {
 
     private final int transferBuffer;
 
@@ -45,13 +45,15 @@ public class FileTransferCustomer extends Thread {
 
     private final Communication communication;
 
+    private final String name;
+
     @Builder
     public FileTransferCustomer(int num,
                                 FileHelper sourceFileHelper, String sourcePath,
                                 FileHelper targetFileHelper, String targetPath,
                                 Queue<String> fileRecordConcurrentLinkedQueue, CountDownLatch countDownLatch,
                                 int transferBuffer, int retryTimes) {
-        setName("文件传输线程-" + num);
+        this.name = "文件传输线程-" + num;
         this.fileRecordConcurrentLinkedQueue = fileRecordConcurrentLinkedQueue;
         this.countDownLatch = countDownLatch;
         this.sourceFileHelper = sourceFileHelper;
@@ -71,7 +73,6 @@ public class FileTransferCustomer extends Thread {
             while ((fileName = fileRecordConcurrentLinkedQueue.poll()) != null) {
                 FileRecord sourceFileRecord = sourceFileHelper.initFile(sourcePath, fileName);
                 FileRecord targetFileRecord = targetFileHelper.initFile(targetPath, fileName);
-                log.info("文件[{}]传输到[{}]", sourceFileRecord.getFileFullPath(), targetFileRecord.getFileFullPath());
                 final UploadStatus uploadStatus = startTransfer(sourceFileRecord, targetFileRecord);
                 if (UploadStatus.needFreshStatus.contains(uploadStatus)) {
                     sourceFileRecord.refresh();
@@ -84,7 +85,7 @@ public class FileTransferCustomer extends Thread {
             sourceFileHelper.close();
             targetFileHelper.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("[{}] 采集异常", getName(), e);
         }
         countDownLatch.countDown();
     }
@@ -95,13 +96,14 @@ public class FileTransferCustomer extends Thread {
                 targetFileRecord.mkParentDir();
             }
         } catch (IOException e) {
-            log.error("创建目标文件夹失败", e);
+            log.error("[{}] 创建目标文件夹失败", getName(), e);
             return UploadStatus.Create_Directory_Fail;
         }
         long skipSize = 0L;
         //检查远程是否存在文件
         if (!sourceFileRecord.exists()) {
-            throw new IOException("源文件不存在," + sourceFileRecord.getFileFullPath());
+            log.error("[{}] 源文件不存在,{}", getName(), sourceFileRecord.getFileFullPath());
+            return UploadStatus.Source_not_exist;
         }
         if (sourceFileRecord.exists() && targetFileRecord.exists()) {
             skipSize = targetFileRecord.getSize();
@@ -123,9 +125,17 @@ public class FileTransferCustomer extends Thread {
         communication.setNumber("transferCount", 0L);
         communication.setNumber("count", filePart.getStart());
         communication.setNumber("startTime", System.currentTimeMillis());
+
+        this.updateConcurrentTransfer(sourceFileRecord.getFileFullPath(), targetFileRecord.getFileFullPath(), filePart.getStart());
         return this.startTransfer(sourceFileRecord, targetFileRecord, filePart);
     }
 
+    public void updateConcurrentTransfer(String sourcePath, String targetPath, long skipSize) {
+        log.info("[{}] 文件[{}] 开始传输 [{}]", getName(), sourcePath, targetPath);
+        communication.setString(Key.CONCURRENT_SOURCE_PATH, sourcePath);
+        communication.setString(Key.CONCURRENT_TARGET_PATH, targetPath);
+        communication.setNumber(Key.SEQUEL_INDEX, skipSize);
+    }
 
     public UploadStatus startTransfer(FileRecord sourceFileRecord, FileRecord targetFileRecord, FilePart filePart) {
         if (filePart.getStart() == 0L) {
@@ -135,6 +145,7 @@ public class FileTransferCustomer extends Thread {
                 return UploadStatus.Upload_New_File_Failed;
             }
         } else {
+            log.info("[{}] 启动续传", getName());
             //开始断点续传
             if (transfer(sourceFileRecord, targetFileRecord, filePart)) {
                 return UploadStatus.Upload_From_Break_Success;
@@ -169,12 +180,12 @@ public class FileTransferCustomer extends Thread {
                     if (retry == retryTimes) {
                         break;
                     }
-                    log.error("{} 采集异常，剩余重试次数[{}]", getName(), retryTimes - retry, e);
+                    log.error("[{}] 采集异常，剩余重试次数[{}]", getName(), retryTimes - retry, e);
                     Thread.sleep(3000L * retry);
                 }
             }
         } catch (Exception e) {
-            log.error(getName() + " 文件传输失败", e);
+            log.error("[{}] 文件传输失败", getName(), e);
             return false;
         }
         return true;
@@ -182,5 +193,9 @@ public class FileTransferCustomer extends Thread {
 
     public List<FileLink> getResult() {
         return result;
+    }
+
+    public String getName() {
+        return name;
     }
 }

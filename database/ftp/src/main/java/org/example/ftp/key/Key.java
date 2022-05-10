@@ -27,4 +27,10 @@ public class Key {
     public final static String ALL_TRANSFER_COUNT = "allTransferCount";
 
     public final static String TRANSFER_SPEED = "transferSpeed";
+
+    public final static String CONCURRENT_SOURCE_PATH = "concurrentSourcePath";
+
+    public final static String CONCURRENT_TARGET_PATH = "concurrentTargetPath";
+
+    public final static String SEQUEL_INDEX = "sequelIndex";
 }

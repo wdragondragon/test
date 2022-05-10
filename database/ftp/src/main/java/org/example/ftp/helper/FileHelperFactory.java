@@ -18,12 +18,14 @@ public class FileHelperFactory {
                     config.get(ConfigKey.PORT, Integer.class),
                     config.get(ConfigKey.USERNAME, String.class),
                     config.get(ConfigKey.PASSWORD, String.class));
-        } else {
+        } else if (type.equals("sftp")) {
             return new SFTPClientCloseable(
                     config.get(ConfigKey.HOST, String.class),
                     config.get(ConfigKey.PORT, Integer.class),
                     config.get(ConfigKey.USERNAME, String.class),
                     config.get(ConfigKey.PASSWORD, String.class));
+        } else {
+            return new LocalFileHelper();
         }
     }
 }

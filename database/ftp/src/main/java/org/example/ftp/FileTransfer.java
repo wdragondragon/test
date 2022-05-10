@@ -1,16 +1,17 @@
 package org.example.ftp;
 
 import com.alibaba.fastjson.JSONObject;
-import org.example.ftp.communication.CommunicationReporter;
+import org.example.ftp.communication.ReportThread;
+import org.example.ftp.communication.StdoutReporter;
 import org.example.ftp.file.FTPFileRecord;
 import org.example.ftp.file.FileRecord;
 import org.example.ftp.file.LocalFileRecord;
 import org.example.ftp.file.SFTPFileRecord;
-import org.example.ftp.helper.FileHelperFactory;
-import org.example.ftp.key.ConfigKey;
 import org.example.ftp.helper.FTPClientCloseable;
 import org.example.ftp.helper.FileHelper;
+import org.example.ftp.helper.FileHelperFactory;
 import org.example.ftp.helper.SFTPClientCloseable;
+import org.example.ftp.key.ConfigKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author JDragon
@@ -35,11 +37,24 @@ public class FileTransfer {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileTransfer.class);
 
+    private static final long PRINT_TIME = 3 * 1000L;
+
     private int transformerThread = 3;
 
     public static void main(String[] args) throws IOException {
+//        test("local_ftp .json");
+        test("local_sftp.json");
+//        test("sfp_local.json");
+//        test("sftp_ftp .json");
+//        test("sftp_sftp.json");
+//        test("ftp_local.json");
+//        test("ftp_ftp.json");
+//        test("ftp_sftp.json");
+    }
+
+    public static void test(String configPath) throws IOException {
         FileTransfer fileTransfer = new FileTransfer();
-        Configuration configuration = Configuration.init(new File("C:\\Users\\10619\\Desktop\\config.json"));
+        Configuration configuration = Configuration.init(new File("C:\\Users\\10619\\Desktop\\test\\config\\" + configPath));
         Configuration jobConfig = configuration.getConfig(ConfigKey.JOB_PARAMETER);
         fileTransfer.init(jobConfig);
         fileTransfer.start(jobConfig, configuration.getConfig(ConfigKey.READER_PARAMETER), configuration.getConfig(ConfigKey.WRITER_PARAMETER));
@@ -100,12 +115,14 @@ public class FileTransfer {
             }
         }
 
-        new CommunicationReporter().start();
+        ReportThread reportThread = new ReportThread();
+        reportThread.regReporter(new StdoutReporter());
+        reportThread.start();
 
         LOG.info("文件传输线程启动");
         for (FileTransferCustomer fileTransferCustomer : transferCustomerList) {
             LOG.info("文件传输线程[{}]启动", fileTransferCustomer.getName());
-            exec.submit(fileTransferCustomer);
+            exec.submit(fileTransferCustomer, TimeUnit.MILLISECONDS);
         }
 
         try {

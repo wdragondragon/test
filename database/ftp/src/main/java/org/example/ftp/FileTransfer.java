@@ -1,21 +1,31 @@
 package org.example.ftp;
 
+import com.alibaba.fastjson.JSONObject;
+import org.example.ftp.communication.ReportThread;
+import org.example.ftp.communication.StdoutReporter;
 import org.example.ftp.file.FTPFileRecord;
 import org.example.ftp.file.FileRecord;
 import org.example.ftp.file.LocalFileRecord;
 import org.example.ftp.file.SFTPFileRecord;
-import org.example.ftp.util.FTPClientCloseable;
-import org.example.ftp.util.SFTPClientCloseable;
+import org.example.ftp.helper.FTPClientCloseable;
+import org.example.ftp.helper.FileHelper;
+import org.example.ftp.helper.FileHelperFactory;
+import org.example.ftp.helper.SFTPClientCloseable;
+import org.example.ftp.key.ConfigKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author JDragon
@@ -27,190 +37,106 @@ public class FileTransfer {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileTransfer.class);
 
-    private final static Map<Integer, String> unitMap = new HashMap<Integer, String>() {{
-        put(1, "b");
-        put(2, "kb");
-        put(3, "mb");
-        put(4, "gb");
-    }};
+    private static final long PRINT_TIME = 3 * 1000L;
 
-    public UploadStatus startTransfer(FileRecord sourceFileRecord, FileRecord targetFileRecord) throws IOException {
-        try {
-            sourceFileRecord.mkParentDir();
-            targetFileRecord.mkParentDir();
-        } catch (IOException e) {
-            return UploadStatus.Create_Directory_Fail;
-        }
-        long skipSize = 0L;
-        //检查远程是否存在文件
-        if (!sourceFileRecord.exists()) {
-            throw new IOException("源文件不存在");
-        }
-        if (sourceFileRecord.exists() && targetFileRecord.exists()) {
-            skipSize = targetFileRecord.getSize();
-            long sourceSize = sourceFileRecord.getSize();
-            if (skipSize == sourceSize) {
-                return UploadStatus.File_Exits;
-            } else if (skipSize > sourceSize) {
-                return UploadStatus.Remote_Bigger_Local;
-            }
-        }
+    private int transformerThread = 3;
 
-        if (skipSize == 0L) {
-            if (startTransfer(sourceFileRecord.getInputStream(skipSize), targetFileRecord.getOutputStream(skipSize), skipSize)) {
-                return UploadStatus.Upload_New_File_Success;
-            } else {
-                return UploadStatus.Upload_New_File_Failed;
-            }
-        } else {
-            //开始断点续传
-            if (startTransfer(sourceFileRecord.getInputStream(skipSize), targetFileRecord.getOutputStream(skipSize), skipSize)) {
-                return UploadStatus.Upload_From_Break_Success;
-            } else if (targetFileRecord.delete()) {
-                if (startTransfer(sourceFileRecord.getInputStream(skipSize), targetFileRecord.getOutputStream(skipSize), skipSize)) {
-                    return UploadStatus.Upload_New_File_Success;
-                } else {
-                    return UploadStatus.Upload_New_File_Failed;
-                }
-            } else {
-                return UploadStatus.Delete_Remote_Faild;
-            }
-        }
+    public static void main(String[] args) throws IOException {
+//        test("local_ftp .json");
+        test("local_sftp.json");
+//        test("sfp_local.json");
+//        test("sftp_ftp .json");
+//        test("sftp_sftp.json");
+//        test("ftp_local.json");
+//        test("ftp_ftp.json");
+//        test("ftp_sftp.json");
     }
 
-    public boolean startTransfer(InputStream inputStream, OutputStream outputStream, long skipSize) {
-        try {
-            byte[] bytes = new byte[10240];
-            long count = skipSize;
-            int readCount;
-            while ((readCount = inputStream.read(bytes)) != -1) {
-                outputStream.write(bytes, 0, readCount);
-                count += readCount;
-                LOG.info("进度 {}", toUnit(count));
-            }
-            inputStream.close();
-            outputStream.close();
-        } catch (Exception e) {
-            LOG.error("文件传输失败", e);
-            return false;
-        }
-        return true;
-    }
-
-    public String toUnit(long size) {
-        List<Integer> numList = new LinkedList<>();
-        while (size != 0) {
-            numList.add((int) (size & 1023));
-            size = size >> 10;
-        }
-        StringBuilder progress = new StringBuilder();
-        for (int i = numList.size() - 1; i >= 0; i--) {
-            progress.append(numList.get(i)).append(unitMap.get(i + 1)).append(" ");
-        }
-        return progress.toString();
-    }
-
-    public static void main(String[] args) throws Exception {
+    public static void test(String configPath) throws IOException {
         FileTransfer fileTransfer = new FileTransfer();
-
-        fileTransfer.localToLocal();
-        fileTransfer.localToFtp();
-        fileTransfer.localToSftp();
-
-        fileTransfer.ftpToLocal();
-        fileTransfer.ftpToFtp();
-        fileTransfer.ftpToSftp();
-
-        fileTransfer.sftpToLocal();
-        fileTransfer.sftpToFtp();
-        fileTransfer.sftpToSftp();
+        Configuration configuration = Configuration.init(new File("C:\\Users\\10619\\Desktop\\test\\config\\" + configPath));
+        Configuration jobConfig = configuration.getConfig(ConfigKey.JOB_PARAMETER);
+        fileTransfer.init(jobConfig);
+        fileTransfer.start(jobConfig, configuration.getConfig(ConfigKey.READER_PARAMETER), configuration.getConfig(ConfigKey.WRITER_PARAMETER));
     }
 
-
-    public void localToLocal() throws Exception {
-        FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
-        FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-local-local.jar");
-        LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetLocalFileRecord));
-    }
-
-
-    public void localToFtp() throws Exception {
-        try (FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
-            FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
-            FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-local-ftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetFTPFileRecord));
-        }
-    }
-
-    public void localToSftp() throws Exception {
-        try (SFTPClientCloseable sftpClientCloseable = new SFTPClientCloseable("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
-            sftpClientCloseable.connect();
-            FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
-            FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceLocalFileRecord, targetSFTPFileRecord));
-        }
-    }
-
-
-    public void ftpToLocal() throws Exception {
-        try (FTPClientCloseable sourceFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
-            FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
-            FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-ftp-local.jar");
-
-            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetLocalFileRecord));
-        }
-    }
-
-    public void ftpToFtp() throws Exception {
-        try (FTPClientCloseable sourceFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-             FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");) {
-            FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
-            FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-ftp-ftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetFTPFileRecord));
-        }
-    }
-
-
-    public void ftpToSftp() throws Exception {
-        try (FTPClientCloseable sourceFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
-             SFTPClientCloseable sftpClientCloseable = new SFTPClientCloseable("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
-            sftpClientCloseable.connect();
-            FileRecord sourceFTPFileRecord = new FTPFileRecord(sourceFtp, "test-local-ftp.jar");
-            FileRecord targetSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-ftp-sftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceFTPFileRecord, targetSFTPFileRecord));
-        }
-    }
-
-
-    public void sftpToLocal() throws Exception {
-        try (SFTPClientCloseable sftpClientCloseable = new SFTPClientCloseable("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
-            sftpClientCloseable.connect();
-            FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
-            FileRecord targetLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test-sftp-local.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetLocalFileRecord));
-        }
-    }
-
-
-    public void sftpToFtp() throws Exception {
+    public void md5() {
         try (FTPClientCloseable targetFtp = new FTPClientCloseable("10.194.188.77", 21, "user_test", "EhnkvrX1V20=");
              SFTPClientCloseable sftpClientCloseable = new SFTPClientCloseable("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
-            sftpClientCloseable.connect();
             FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
             FileRecord targetFTPFileRecord = new FTPFileRecord(targetFtp, "test-sftp-ftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetFTPFileRecord));
+            FileRecord sourceLocalFileRecord = new LocalFileRecord("C:\\Users\\10619\\Desktop\\test.jar");
+
+            final String s = sourceLocalFileRecord.md5();
+            final String s1 = sourceSFTPFileRecord.md5();
+            final String s2 = targetFTPFileRecord.md5();
+            System.out.println(s);
+            System.out.println(s1);
+            System.out.println(s2);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
+    public void init(Configuration configuration) {
+        this.transformerThread = configuration.get(ConfigKey.TRANSFORMER_THREAD, Integer.class);
+    }
 
-    public void sftpToSftp() throws Exception {
-        try (SFTPClientCloseable sourceSftpClientCloseable = new SFTPClientCloseable("10.194.188.77", 22, "root", "EhnkvrX1V20=");
-             SFTPClientCloseable targetSftpClientCloseable = new SFTPClientCloseable("10.194.188.77", 22, "root", "EhnkvrX1V20=");) {
-            sourceSftpClientCloseable.connect();
-            targetSftpClientCloseable.connect();
-            FileRecord sourceSFTPFileRecord = new SFTPFileRecord(sourceSftpClientCloseable, "/data/ftp/user_test/test-local-sftp.jar");
-            FileRecord targetSFTPFileRecord = new SFTPFileRecord(targetSftpClientCloseable, "/data/ftp/user_test/test-sftp-sftp.jar");
-            LOG.info("上传结果：[{}]", startTransfer(sourceSFTPFileRecord, targetSFTPFileRecord));
+    public void start(Configuration jobConfig, Configuration sourceConfig, Configuration targetConfig) {
+        String sourcePath = sourceConfig.get(ConfigKey.PATH, String.class);
+        String targetPath = targetConfig.get(ConfigKey.PATH, String.class);
+        Queue<String> fileLinkQueue = new ConcurrentLinkedQueue<>();
+        try (FileHelper sourceFileHelper = FileHelperFactory.create(sourceConfig)) {
+            Set<String> strings = sourceFileHelper.listFile(sourcePath, sourceConfig.get(ConfigKey.REGEX, String.class));
+            fileLinkQueue.addAll(strings);
+        } catch (Exception e) {
+            LOG.error("获取源文件失败", e);
+            return;
         }
+
+        ExecutorService exec = Executors.newFixedThreadPool(transformerThread);
+        CountDownLatch latch = new CountDownLatch(transformerThread);
+        List<FileTransferCustomer> transferCustomerList = new LinkedList<>();
+        LOG.info("文件传输线程初始化");
+        for (int i = 0; i < transformerThread; i++) {
+            try {
+                FileHelper sourceFileHelper = FileHelperFactory.create(sourceConfig);
+                FileHelper targetFileHelper = FileHelperFactory.create(targetConfig);
+                FileTransferCustomer fileTransferCustomer = FileTransferCustomer.builder()
+                        .num(i)
+                        .sourceFileHelper(sourceFileHelper).sourcePath(sourcePath)
+                        .targetFileHelper(targetFileHelper).targetPath(targetPath)
+                        .fileRecordConcurrentLinkedQueue(fileLinkQueue).countDownLatch(latch)
+                        .retryTimes(jobConfig.get(ConfigKey.RETRY_TIMES, Integer.class)).transferBuffer(jobConfig.get(ConfigKey.REPORT_INTERVAL, Integer.class))
+                        .build();
+                transferCustomerList.add(fileTransferCustomer);
+            } catch (Exception e) {
+                LOG.error("连接失败", e);
+            }
+        }
+
+        ReportThread reportThread = new ReportThread();
+        reportThread.regReporter(new StdoutReporter());
+        reportThread.start();
+
+        LOG.info("文件传输线程启动");
+        for (FileTransferCustomer fileTransferCustomer : transferCustomerList) {
+            LOG.info("文件传输线程[{}]启动", fileTransferCustomer.getName());
+            exec.submit(fileTransferCustomer, TimeUnit.MILLISECONDS);
+        }
+
+        try {
+            latch.await();
+            exec.shutdown();
+            LOG.info("文件传输全部完成");
+        } catch (InterruptedException e) {
+            LOG.error("latch等待异常", e);
+        }
+
+        List<FileLink> transferResult = new LinkedList<>();
+        for (FileTransferCustomer fileTransferCustomer : transferCustomerList) {
+            transferResult.addAll(fileTransferCustomer.getResult());
+        }
+        LOG.info("文件传输结果[{}]", JSONObject.toJSONString(transferResult));
     }
 }

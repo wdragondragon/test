@@ -1,9 +1,8 @@
 package org.example.ftp.file;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPReply;
+import org.example.ftp.helper.FTPClientCloseable;
+import org.example.ftp.helper.FileHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,20 +20,24 @@ public class FTPFileRecord extends FileRecord {
 
     private static final Logger LOG = LoggerFactory.getLogger(FTPFileRecord.class);
 
-    protected FTPClient ftpClient;
+    protected FTPClientCloseable ftpClient;
 
     protected FTPFile file;
 
-    public FTPFileRecord(FTPClient ftpClient, String fileFullPath) throws IOException {
+    public FTPFileRecord(FileHelper ftpClient, String fileFullPath) throws IOException {
         super(fileFullPath);
-        this.ftpClient = ftpClient;
-        ftpClient.changeWorkingDirectory("/");
-        FTPFile[] files = ftpClient.listFiles(fileFullPath);
+        this.ftpClient = (FTPClientCloseable) ftpClient;
+        this.ftpClient.changeWorkingDirectory("/");
+        FTPFile[] files = this.ftpClient.listFiles(fileFullPath);
         if (files.length == 1) {
             file = files[0];
         } else {
             file = null;
         }
+    }
+
+    public FTPFileRecord(FileHelper ftpClient, String path, String name) throws IOException {
+        this(ftpClient, ftpClient.processingPath(path, name));
     }
 
     @Override
@@ -51,51 +54,32 @@ public class FTPFileRecord extends FileRecord {
     }
 
     @Override
-    public OutputStream getOutputStream(long skipSize) throws IOException {
-        if (skipSize > 0) {
-            long size = getSize();
-            ftpClient.setRestartOffset(size);
-        }
-        ftpClient.changeWorkingDirectory(filePath);
-        return ftpClient.storeFileStream(fileName);
+    public OutputStream getOutputStream(long skipSize) throws Exception {
+        return ftpClient.getOutputStream(filePath, fileName, skipSize);
     }
 
     @Override
-    public InputStream getInputStream(long skipSize) throws IOException {
-        if (skipSize > 0) {
-            long size = getSize();
-            ftpClient.setRestartOffset(size);
-        }
-        ftpClient.changeWorkingDirectory(filePath);
-        return ftpClient.retrieveFileStream(fileName);
+    public InputStream getInputStream(long skipSize) throws Exception {
+        return ftpClient.getInputStream(filePath, fileName, skipSize);
     }
 
     @Override
     public boolean mkParentDir() throws IOException {
         // ftp server不支持递归创建目录,只能一级一级创建
-        StringBuilder dirPath = new StringBuilder();
-        String[] dirSplit = StringUtils.split(filePath, "/");
-        for (String dirName : dirSplit) {
-            dirPath.append("/").append(dirName);
-            // 如果directoryPath目录不存在,则创建
-            if (ftpClient.changeWorkingDirectory(dirPath.toString())) {
-                continue;
-            }
-            int replayCode = ftpClient.mkd(dirPath.toString());
-            if (replayCode != FTPReply.COMMAND_OK
-                    && replayCode != FTPReply.PATHNAME_CREATED) {
-                LOG.error("create path fail [{}]", dirPath.toString());
-                return false;
-            }
-        }
+        ftpClient.mkdir(filePath);
         return true;
     }
 
     @Override
     public boolean delete() throws IOException {
         if (exists()) {
-            ftpClient.deleteFile(fileFullPath);
+            ftpClient.rm(fileFullPath);
         }
         return true;
+    }
+
+    @Override
+    public void refresh() throws Exception {
+        ftpClient.fresh();
     }
 }

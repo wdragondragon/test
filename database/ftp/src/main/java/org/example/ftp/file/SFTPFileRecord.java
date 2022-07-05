@@ -1,7 +1,8 @@
 package org.example.ftp.file;
 
 import com.jcraft.jsch.ChannelSftp;
-import org.example.ftp.util.SFTPClientCloseable;
+import org.example.ftp.helper.FileHelper;
+import org.example.ftp.helper.SFTPClientCloseable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,11 +15,17 @@ import java.io.OutputStream;
  * @Des:
  */
 public class SFTPFileRecord extends FileRecord {
+
     private final SFTPClientCloseable sftpClientCloseable;
 
-    public SFTPFileRecord(SFTPClientCloseable sftpClientCloseable, String fileFullPath) {
+
+    public SFTPFileRecord(FileHelper sftpClientCloseable, String fileFullPath) {
         super(fileFullPath);
-        this.sftpClientCloseable = sftpClientCloseable;
+        this.sftpClientCloseable = (SFTPClientCloseable) sftpClientCloseable;
+    }
+
+    public SFTPFileRecord(FileHelper sftpClientCloseable, String path, String name) {
+        this(sftpClientCloseable, sftpClientCloseable.processingPath(path, name));
     }
 
     @Override
@@ -34,15 +41,15 @@ public class SFTPFileRecord extends FileRecord {
     @Override
     public OutputStream getOutputStream(long skipSize) throws IOException {
         if (skipSize > 0) {
-            return sftpClientCloseable.put(fileFullPath, ChannelSftp.OVERWRITE, skipSize);
+            return sftpClientCloseable.getOutputStream(filePath, fileName, ChannelSftp.OVERWRITE, skipSize);
         } else {
-            return sftpClientCloseable.put(fileFullPath, ChannelSftp.OVERWRITE, 0L);
+            return sftpClientCloseable.getOutputStream(filePath, fileName, ChannelSftp.OVERWRITE, 0L);
         }
     }
 
     @Override
     public InputStream getInputStream(long skipSize) throws IOException {
-        return sftpClientCloseable.get(fileFullPath, skipSize);
+        return sftpClientCloseable.getInputStream(filePath, fileName, skipSize);
     }
 
     @Override
@@ -57,5 +64,10 @@ public class SFTPFileRecord extends FileRecord {
             sftpClientCloseable.rm(fileFullPath);
         }
         return true;
+    }
+
+    @Override
+    public void refresh() throws Exception {
+        sftpClientCloseable.fresh();
     }
 }

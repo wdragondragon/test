@@ -46,7 +46,7 @@ public class LocalFileRecord extends FileRecord {
     @Override
     public InputStream getInputStream(long skipSize) throws IOException {
         final FileInputStream fileInputStream = new FileInputStream(file);
-        fileInputStream.skip(skipSize);
+        final long skip = fileInputStream.skip(skipSize);
         return fileInputStream;
     }
 
@@ -71,5 +71,4 @@ public class LocalFileRecord extends FileRecord {
         }
         return true;
     }
-
 }

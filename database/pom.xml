@@ -24,5 +24,6 @@
         <module>elasticsearch</module>
         <module>elasticsearch-hign-level</module>
         <module>ftp</module>
+        <module>oracle</module>
     </modules>
 </project>

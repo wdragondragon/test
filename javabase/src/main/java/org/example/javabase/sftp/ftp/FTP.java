@@ -33,6 +33,7 @@ public class FTP {
         this.username = username;
         this.password = password;
     }
+
     /**
      * 链接到服务器
      *
@@ -56,6 +57,8 @@ public class FTP {
             }
             // 设置上传模式binally or ascii
             ftpClient.setFileType(org.apache.commons.net.ftp.FTP.BINARY_FILE_TYPE);
+            String fileEncoding = System.getProperty("file.encoding");
+            ftpClient.setControlEncoding(fileEncoding);
             log.info("连接成功");
             return true;
         } catch (Exception ex) {
@@ -161,6 +164,7 @@ public class FTP {
         IOUtils.closeQuietly(fis);
         return flag;
     }
+
     public boolean uploadBytes(byte[] bytes, String ftpFileName, String ftpDirectory) {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
         // 上传
@@ -170,7 +174,7 @@ public class FTP {
         return flag;
     }
 
-    public boolean upload(InputStream inputStream, String ftpDirectory , String ftpFileName) {
+    public boolean upload(InputStream inputStream, String ftpDirectory, String ftpFileName) {
         if (ftpClient == null)
             return false;
         if (!ftpClient.isConnected())
@@ -286,6 +290,16 @@ public class FTP {
         }
         filePath = sbStr.toString();
         return filePath;
+    }
+
+    public InputStream getInputStream(String filePath) {
+        try {
+            return ftpClient.retrieveFileStream(new String(filePath.getBytes(), org.apache.commons.net.ftp.FTP.DEFAULT_CONTROL_ENCODING));
+        } catch (IOException e) {
+            String message = String.format("读取文件 : [%s] 时出错,请确认文件：[%s]存在且配置的用户有权限读取", filePath, filePath);
+            log.error(message);
+            throw new RuntimeException(e);
+        }
     }
 
     /**

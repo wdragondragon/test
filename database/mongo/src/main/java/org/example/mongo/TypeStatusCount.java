@@ -6,6 +6,9 @@ package org.example.mongo;
  * @Description:
  */
 public class TypeStatusCount {
+
+    private Long userId;
+
     private int count;
 
     private int codeRight;
@@ -19,7 +22,8 @@ public class TypeStatusCount {
     private int perfect;
 
 
-    public TypeStatusCount(int count, int codeRight, int wordRight, int codeWrong, int wordWrong, int perfect) {
+    public TypeStatusCount(long userId, int count, int codeRight, int wordRight, int codeWrong, int wordWrong, int perfect) {
+        this.userId = userId;
         this.count = count;
         this.codeRight = codeRight;
         this.wordRight = wordRight;

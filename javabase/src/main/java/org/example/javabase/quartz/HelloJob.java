@@ -35,7 +35,7 @@ public class HelloJob implements Job {
         System.out.println(Thread.currentThread().getId() + " exec start time:" + simpleDateFormat.format(new Date()));
 //        System.err.println(name + " Hello! " + doSomething);
 //        System.out.println("triggerName:" + key.getName() + " jobName:" + key1.getName());
-        Thread.sleep(150 * 1000L);
+//        Thread.sleep(150 * 1000L);
         System.out.println(Thread.currentThread().getId() + " exec end time:" + simpleDateFormat.format(new Date()));
     }
 }

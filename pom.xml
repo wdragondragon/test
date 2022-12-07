@@ -20,6 +20,9 @@
         <module>spring-redis-mq</module>
         <module>leetcode</module>
         <module>peer2peer</module>
+        <module>database/kerberos/kafka-kerberos</module>
+        <module>database/kerberos/elasticsearch-hign-level-kerberos</module>
+        <module>database/clickhouse</module>
     </modules>
 
     <name>test</name>

@@ -35,3 +35,7 @@ logging:
   config: classpath:config/logback-spring.xml
   level:
     com.bmsoft.dc.collect: info
+
+mq-name: logDetails-fanout-test
+mq-interval: 1000
+mq-thread: 1

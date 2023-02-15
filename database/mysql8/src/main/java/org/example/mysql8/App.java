@@ -11,7 +11,7 @@ import java.sql.DriverManager;
 public class App {
     public static void main(String[] args) throws Exception {
         String url = System.getProperty("url");
-        Class.forName("com.mysql.cj.jdbc.Driver");
+        Class.forName("com.mysql.jdbc.Driver");
         if(url==null){
             url = "jdbc:mysql://10.15.6.45:3306/partybuild";
         }

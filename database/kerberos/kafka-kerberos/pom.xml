@@ -17,10 +17,28 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <zookeeper.version>3.6.3-hw-ei-312005</zookeeper.version>
-        <kafka.version>2.4.0-hw-ei-312005</kafka.version>
+<!--        <kafka.version>2.4.0-hw-ei-312005</kafka.version>-->
+        <kafka.version>2.2.0</kafka.version>
+
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.10</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.0.13</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.22</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
@@ -193,7 +211,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        org.example.kafka.kerberos.KafkaKrb5Test
+                                        org.example.kafka.kerberos.Consumer
                                     </mainClass>
                                 </manifest>
                             </archive>

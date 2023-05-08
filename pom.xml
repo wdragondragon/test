@@ -24,6 +24,7 @@
         <module>database/kerberos/elasticsearch-hign-level-kerberos</module>
         <module>database/clickhouse</module>
         <module>spring-rabbit-mq</module>
+        <module>database/kafka</module>
     </modules>
 
     <name>test</name>

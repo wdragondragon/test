@@ -15,21 +15,24 @@ import java.util.Properties;
  */
 public class KafkaKrb5Test {
     public static void main(String[] args) throws IOException {
-        Properties properties = login("", "", "");
+        String userPrincipal = System.getProperty("user", "kafka/hadoop.hadoop.com@HADOOP.COM");
+        Properties properties = login(userPrincipal, "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf",
+                "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/kafka@hadoop.keytab");
         KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(properties);
         Map<String, List<PartitionInfo>> stringListMap = kafkaConsumer.listTopics();
+        System.out.println(stringListMap);
         kafkaConsumer.close();
     }
 
 
     public static Properties login(String principal, String krb5ConfigPath, String keytabPath) throws IOException {
         setKrb5Config(krb5ConfigPath);
-        setZookeeperServerPrincipal("zookeeper/hadoop.hadoop.com");
+//        setZookeeperServerPrincipal("zookeeper/centos1@HADOOP.COM");
         Properties props = initProperties();
         props.put("security.protocol", "SASL_PLAINTEXT");
         props.put("sasl.kerberos.service.name", "kafka");
         props.put("sasl.mechanism", "GSSAPI");
-        props.put("kerberos.domain.name", "hadoop.hadoop.com");
+//        props.put("kerberos.domain.name", "HADOOP.COM");
         props.put("sasl.jaas.config", getModuleContext(principal, keytabPath));
         return props;
     }
@@ -37,7 +40,7 @@ public class KafkaKrb5Test {
     public static Properties initProperties() {
         Properties props = new Properties();
         // Broker连接地址
-        props.put("bootstrap.servers", "");
+        props.put("bootstrap.servers", "centos1:9092");
         // Group id
         props.put("group.id", "DemoConsumer");// 消费者组id
         // 是否自动提交offset

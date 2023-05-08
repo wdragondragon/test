@@ -29,5 +29,6 @@
         <module>postgre</module>
         <module>mongo</module>
         <module>kerberos</module>
+        <module>hdfs</module>
     </modules>
 </project>

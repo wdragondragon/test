@@ -213,7 +213,7 @@ public class LoginUtil {
         krbFile = krbFile.replace("\\", "\\\\");
 
         LoginUtil.setKrb5Config(krbFile);
-        LoginUtil.setZookeeperServerPrincipal("zookeeper/hadoop.hadoop.com");
+        LoginUtil.setZookeeperServerPrincipal("zookeeper/hadoop.hadoop_di.com");
         LoginUtil.setJaasFile(principal, userKeyTableFile);
     }
 

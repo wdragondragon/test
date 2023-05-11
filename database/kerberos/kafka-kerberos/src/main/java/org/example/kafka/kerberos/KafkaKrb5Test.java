@@ -14,17 +14,26 @@ import java.util.Properties;
  * @description:
  */
 public class KafkaKrb5Test {
+
+//    public static final String brokerList = System.getProperty("brokerList", "cnsz92pl00578:21007,cnsz92pl00575:21007,cnsz92pl00574:21007");
+//    public static final String brokerList = System.getProperty("brokerList", "100.76.160.5:21007,100.76.160.6:21007,100.76.160.7:21007");
+//    public static final String userPrincipal = System.getProperty("user", "wedata_poc@HADOOP_DI.COM");
+//    public static final String krb5ConfigPath = System.getProperty("krb5Conf", "/data/bmdata/software/hdfs/krb5.conf");
+//    public static final String keytabPath = System.getProperty("keytab", "/data/bmdata/software/hdfs/user.keytab");
+//    public static final String domain = System.getProperty("domain", "HADOOP.HADOOP_DI.COM");
+
+    //       public static final String userPrincipal = System.getProperty("user", "kafka/hadoop.hadoop.com@HADOOP.COM");
+//       public static final String krb5ConfigPath = System.getProperty("krb5conf", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf");
+//       public static final String keytabPath = System.getProperty("keytab", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/kafka@hadoop.keytab");
+    public static final String brokerList = System.getProperty("brokerList", "kafka.tyu.wiki:19091,kafka.tyu.wiki:19092,kafka.tyu.wiki:19093");
+//    public static final String brokerList = System.getProperty("brokerList", "centos1:19091,centos2:19092,centos3:19093");
+    public static final String userPrincipal = System.getProperty("user", "zhjl@HADOOP.COM");
+    public static final String krb5ConfigPath = System.getProperty("krb5conf", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf");
+    public static final String keytabPath = System.getProperty("keytab", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/zhjl.keytab");
+    public static final String domain = System.getProperty("domain", "kafka.tyu.wiki");
+
     public static void main(String[] args) throws IOException {
-//        String userPrincipal = System.getProperty("user", "kafka/hadoop.hadoop.com@HADOOP.COM");
-//        String krb5ConfigPath = System.getProperty("krb5conf", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf");
-//        String keytabPath = System.getProperty("keytab", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/kafka@hadoop.keytab");
-//        String userPrincipal = System.getProperty("user", "wedata_poc@HADOOP_DI.COM");
-//        String krb5ConfigPath = System.getProperty("krb5conf", "/data/bmdata/software/hdfs/krb5.conf");
-//        String keytabPath = System.getProperty("keytab", "/data/bmdata/software/hdfs/user.keytab");
-        String userPrincipal = System.getProperty("user", "zhjl@HADOOP.COM");
-        String krb5ConfigPath = System.getProperty("krb5conf", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf");
-        String keytabPath = System.getProperty("keytab", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/zhjl.keytab");
-        Properties properties = login(userPrincipal, krb5ConfigPath, keytabPath);
+        Properties properties = login(userPrincipal, krb5ConfigPath, keytabPath, domain);
         KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(properties);
         Map<String, List<PartitionInfo>> stringListMap = kafkaConsumer.listTopics();
         System.out.println(stringListMap);
@@ -32,14 +41,14 @@ public class KafkaKrb5Test {
     }
 
 
-    public static Properties login(String principal, String krb5ConfigPath, String keytabPath) throws IOException {
+    public static Properties login(String principal, String krb5ConfigPath, String keytabPath, String domain) throws IOException {
         setKrb5Config(krb5ConfigPath);
 //        setZookeeperServerPrincipal("zookeeper/hadoop.hadoop_di.com");
         Properties props = initProperties();
         props.put("security.protocol", "SASL_PLAINTEXT");
         props.put("sasl.kerberos.service.name", "kafka");
         props.put("sasl.mechanism", "GSSAPI");
-//        props.put("kerberos.domain.name", "HADOOP_DI.COM");
+        props.put("kerberos.domain.name", domain);
         props.put("sasl.jaas.config", getModuleContext(principal, keytabPath));
         return props;
     }
@@ -47,8 +56,9 @@ public class KafkaKrb5Test {
     public static Properties initProperties() {
         Properties props = new Properties();
         // Broker连接地址
-        props.put("bootstrap.servers", "centos1:9092,centos2:9092,centos3:9092");
-//        props.put("bootstrap.servers", "100.76.160.5:21007,100.76.160.6:21007,100.76.160.7:21007");
+//        props.put("bootstrap.servers", "centos1:9092,centos2:9092,centos3:9092");
+//        props.put("bootstrap.servers", "centos1:19091,centos2:19092,centos3:19093");
+        props.put("bootstrap.servers", brokerList);
         // Group id
         props.put("group.id", "DemoConsumer");// 消费者组id
         // 是否自动提交offset

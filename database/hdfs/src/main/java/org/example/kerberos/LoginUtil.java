@@ -1,4 +1,4 @@
-package org.example;
+package org.example.kerberos;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -38,7 +38,7 @@ public class LoginUtil {
 
     private static final boolean IS_IBM_JDK = System.getProperty("java.vendor").contains("IBM");
 
-    public synchronized static void login(String userPrincipal, String userKeytabPath, String krb5ConfPath, Configuration conf)
+    public synchronized static UserGroupInformation login(String userPrincipal, String userKeytabPath, String krb5ConfPath, Configuration conf)
             throws IOException {
         // 1.check input parameters
         if ((userPrincipal == null) || (userPrincipal.length() <= 0)) {
@@ -88,9 +88,11 @@ public class LoginUtil {
         setConfiguration(conf);
 
         // 4.login and check for hadoop
-        loginHadoop(userPrincipal, userKeytabFile.getAbsolutePath());
+        UserGroupInformation userGroupInformation = loginHadoop(userPrincipal, userKeytabFile.getAbsolutePath());
 
         LOG.info("Login success!!!!!!!!!!!!!!");
+
+        return userGroupInformation;
     }
 
     private static void setConfiguration(Configuration conf) {
@@ -125,15 +127,15 @@ public class LoginUtil {
     private static void setKrb5Config(String krb5ConfFile)
             throws IOException {
         System.setProperty(JAVA_SECURITY_KRB5_CONF_KEY, krb5ConfFile);
-//        String ret = System.getProperty(JAVA_SECURITY_KRB5_CONF_KEY);
-//        if (ret == null) {
-//            LOG.error(JAVA_SECURITY_KRB5_CONF_KEY + " is null.");
-//            throw new IOException(JAVA_SECURITY_KRB5_CONF_KEY + " is null.");
-//        }
-//        if (!ret.equals(krb5ConfFile)) {
-//            LOG.error(JAVA_SECURITY_KRB5_CONF_KEY + " is " + ret + " is not " + krb5ConfFile + ".");
-//            throw new IOException(JAVA_SECURITY_KRB5_CONF_KEY + " is " + ret + " is not " + krb5ConfFile + ".");
-//        }
+        String ret = System.getProperty(JAVA_SECURITY_KRB5_CONF_KEY);
+        if (ret == null) {
+            LOG.error(JAVA_SECURITY_KRB5_CONF_KEY + " is null.");
+            throw new IOException(JAVA_SECURITY_KRB5_CONF_KEY + " is null.");
+        }
+        if (!ret.equals(krb5ConfFile)) {
+            LOG.error(JAVA_SECURITY_KRB5_CONF_KEY + " is " + ret + " is not " + krb5ConfFile + ".");
+            throw new IOException(JAVA_SECURITY_KRB5_CONF_KEY + " is " + ret + " is not " + krb5ConfFile + ".");
+        }
     }
 
     public static void setJaasConf(String loginContextName, String principal, String keytabFile)
@@ -232,10 +234,11 @@ public class LoginUtil {
         }
     }
 
-    private static void loginHadoop(String principal, String keytabFile)
+    private static UserGroupInformation loginHadoop(String principal, String keytabFile)
             throws IOException {
         try {
-            UserGroupInformation.loginUserFromKeytab(principal, keytabFile);
+            return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabFile);
+
         } catch (IOException e) {
             LOG.error("login failed with " + principal + " and " + keytabFile + ".");
             LOG.error("perhaps cause 1 is " + LOGIN_FAILED_CAUSE_PASSWORD_WRONG + ".");

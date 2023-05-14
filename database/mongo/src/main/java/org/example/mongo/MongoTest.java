@@ -22,7 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class MongoTest {
     public static void main(String[] args) {
         // Replace the uri string with your MongoDB deployment's connection string
-        String uri = "mongodb://root:example@192.168.1.150:27017/?socketKeepAlive=true&heartbeatFrequency=1000&maxConnectionIdleTime=600000";
+//        String uri = "mongodb://root:example@192.168.1.150:27017/?socketKeepAlive=true&heartbeatFrequency=1000&maxConnectionIdleTime=600000";
+        String uri = "mongodb://wedata_test:Wedata@12345@100.109.8.130:6521/?socketKeepAlive=true&heartbeatFrequency=1000&maxConnectionIdleTime=600000";
 //        AtomicInteger atomicInteger = new AtomicInteger(3230);
 //        AtomicLong atomicLong = new AtomicLong(0);
 //        for (int i = 0; i < 5; i++) {
@@ -40,20 +41,20 @@ public class MongoTest {
 
 
         MongoClient mongoClient = MongoClients.create(uri);
-        MongoDatabase database = mongoClient.getDatabase("bb-typing");
-        MongoCollection<Document> collection = database.getCollection("all_data_test");
-        List<Document> cache = new LinkedList<>();
-        for (int j = 1; j <= 10000 * 20000; j++) {
-            int randomInt = RandomUtil.randomInt(0, 10000 * 50000);
-            TypeStatusCount typeStatusCount = new TypeStatusCount(j, randomInt, randomInt, randomInt, 0, 0, randomInt);
-            Document document = Document.parse(JSONObject.toJSONString(typeStatusCount));
-            cache.add(document);
-            if (cache.size() >= 1024) {
-                System.out.println("下标：" + j);
-                collection.insertMany(cache);
-                cache.clear();
-            }
-        }
+        MongoDatabase database = mongoClient.getDatabase("mgdb1");
+//        MongoCollection<Document> collection = database.getCollection("all_data_test");
+//        List<Document> cache = new LinkedList<>();
+//        for (int j = 1; j <= 10000 * 20000; j++) {
+//            int randomInt = RandomUtil.randomInt(0, 10000 * 50000);
+//            TypeStatusCount typeStatusCount = new TypeStatusCount(j, randomInt, randomInt, randomInt, 0, 0, randomInt);
+//            Document document = Document.parse(JSONObject.toJSONString(typeStatusCount));
+//            cache.add(document);
+//            if (cache.size() >= 1024) {
+//                System.out.println("下标：" + j);
+//                collection.insertMany(cache);
+//                cache.clear();
+//            }
+//        }
     }
 
     public static class MongoThread extends Thread {

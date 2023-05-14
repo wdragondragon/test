@@ -1,10 +1,14 @@
 package org.example;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.sun.security.auth.callback.TextCallbackHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.example.kerberos.GetKerberosObject;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.AppConfigurationEntry;
@@ -13,73 +17,78 @@ import javax.security.auth.login.LoginContext;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
+import java.util.Set;
 
 /**
  * Hello world!
  */
 @Slf4j
 public class Krb {
-    public static void main(String[] args) {
-        String host = "hdfs://hacluster";
-        String userKeytabFile = System.getProperty("keytab", "/data/bmdata/software/hdfs/user.keytab");
-        String userHdfsSiteFileName = System.getProperty("hdfssite", "/data/bmdata/software/hdfs/hdfs-site.xml");
-        String userCoreSiteFileName = System.getProperty("coresite", "/data/bmdata/software/hdfs/core-site.xml");
-        String userPrincipal = System.getProperty("user", "wedata_poc@HADOOP_DI.COM");
-        log.info("host:{}\n, userKeytabFile:{}\n, userHdfsSiteFileName:{}\n, userCoreSiteFileName:{}\n, userPrincipal:{}\n",
-                host, userKeytabFile, userHdfsSiteFileName, userCoreSiteFileName, userPrincipal);
+
+    public static final String HDFS_DEFAULTFS_KEY = "fs.defaultFS";
+
+    public static final String HADOOP_SECURITY_AUTHENTICATION_KEY = "hadoop.security.authentication";
+
+    public static final String KERBEROS_FILE_PATH = "D:\\dev\\IdeaProjects\\test\\database\\hdfs\\src\\main\\resources\\";
+
+    public static final String DEFAULT_HDFS_SITE_PATH = KERBEROS_FILE_PATH + "hdfs-site.xml";
+
+    public static final String DEFAULT_CORE_SITE_PATH = KERBEROS_FILE_PATH + "core-site.xml";
+
+    public static final String DEFAULT_KEYTAB_PATH = KERBEROS_FILE_PATH + "user.keytab";
+
+    public static final String DEFAULT_KRB5_PATH = KERBEROS_FILE_PATH + "krb5.conf";
+
+    public static void main(String[] args) throws Exception {
+        String defaultFS = "hdfs://hacluster";
+
+        String hdfsSiteFile = System.getProperty("hdfssite", DEFAULT_HDFS_SITE_PATH);
+        if (StringUtils.isBlank(hdfsSiteFile)) {
+            log.warn("hdfs-site.xml not set");
+            hdfsSiteFile = DEFAULT_HDFS_SITE_PATH;
+        }
+        String coreSiteFile = System.getProperty("coresite", DEFAULT_CORE_SITE_PATH);
+        if (StringUtils.isBlank(coreSiteFile)) {
+            log.warn("core-site.xml not set");
+            coreSiteFile = DEFAULT_CORE_SITE_PATH;
+        }
+        String kerberosKeytabFilePath = System.getProperty("keytab", DEFAULT_KEYTAB_PATH);
+        String kerberosPrincipal = System.getProperty("user", "wedata_poc@HADOOP_DI.COM");
+        String krb5Conf = System.getProperty("java.security.krb5.conf");
+        if (StringUtils.isBlank(krb5Conf)) {
+            krb5Conf = DEFAULT_KRB5_PATH;
+            System.setProperty("java.security.krb5.conf", krb5Conf);
+        }
+        Boolean haveKerberos = "true".equals(System.getProperty("haveKerberos", "false"));
+
+
+        org.apache.hadoop.conf.Configuration hadoopConf;
+        hadoopConf = new org.apache.hadoop.conf.Configuration();
+
+        if (StringUtils.isBlank(defaultFS)) {
+            hadoopConf.set(HDFS_DEFAULTFS_KEY, defaultFS);
+        }
+
+        log.info("load hdfs-site.xml at {}", hdfsSiteFile);
+        hadoopConf.addResource(new Path(hdfsSiteFile));
+
+        log.info("load core-site.xml at {}", coreSiteFile);
+        hadoopConf.addResource(new Path(coreSiteFile));
+
+        //是否有Kerberos认证
+        // Kerberos
+        if (haveKerberos) {
+            hadoopConf.set(HADOOP_SECURITY_AUTHENTICATION_KEY, "kerberos");
+            log.info("host:{}\n, userKeytabFile:{}\n, userHdfsSiteFileName:{}\n, userCoreSiteFileName:{}\n, userPrincipal:{}\n",
+                    defaultFS, kerberosKeytabFilePath, hdfsSiteFile, coreSiteFile, kerberosPrincipal);
+        }
+        GetKerberosObject getKerberosObject = new GetKerberosObject(kerberosPrincipal, kerberosKeytabFilePath, krb5Conf, hadoopConf, haveKerberos);
         try {
-            Krb krb = new Krb();
-            FileSystem fs = krb.getFS(host, userHdfsSiteFileName, userCoreSiteFileName, userKeytabFile, userPrincipal);
-            FileStatus fileStatus = DFSUtil.fileStatus(fs, "/");
+            FileSystem fs = getKerberosObject.doAs(() -> FileSystem.get(hadoopConf));
+            FileStatus fileStatus = fs.getFileStatus(new Path("/"));
             System.out.println(fileStatus);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-
-    private FileSystem getFS(String host, String userHdfsSiteFileName, String userCoreSiteFileName, String userKeytabFile, String principal) throws IOException {
-        String krb5File = System.getProperty("java.security.krb5.conf");
-        if (StringUtils.isBlank(krb5File)) {
-            krb5File = "/data/bmdata/software/hdfs/krb5.conf";
-            System.setProperty("java.security.krb5.conf", krb5File);
-        }
-        log.info("krb5File:{}", krb5File);
-
-        log.info("use new kerberos auth");
-        try {
-            return getFSKrb5(host, principal, userKeytabFile, userHdfsSiteFileName, userCoreSiteFileName);
-        } catch (Exception e) {
-            log.error("getDFSKrb5 error", e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    private FileSystem getFSKrb5(String host, String principal, String userKeytabFile, String userHdfsSiteFileName, String userCoreSiteFileName) throws Exception {
-        HashMap<String, String> krb5Options = new HashMap<>();
-        krb5Options.put("principal", principal);
-        krb5Options.put("keyTab", userKeytabFile);
-        krb5Options.put("useKeyTab", "true");
-        krb5Options.put("useTicketCache", "false");
-        krb5Options.put("refreshKrb5Config", "true"); //临时刷新，并发时也有可能出问题
-        krb5Options.put("debug", "false");
-        krb5Options.put("doNotPrompt", "true");
-        krb5Options.put("storeKey", "true");
-        Configuration config = new Configuration() {
-            @Override
-            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-                return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, krb5Options)};
-            }
-        };
-
-        LoginContext lc = new LoginContext("SampleClient", null, new TextCallbackHandler(), config);
-        lc.login();
-        log.info("Kerberos login success, " + lc.getSubject());
-        return Subject.doAs(lc.getSubject(), (PrivilegedExceptionAction<FileSystem>) () -> {
-            DFSUtil dfsUtil = new DFSUtil(host, true, userHdfsSiteFileName, userCoreSiteFileName);
-            return dfsUtil.getFileSystem();
-        });
-    }
-
 }

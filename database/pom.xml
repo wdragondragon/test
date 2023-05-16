@@ -30,5 +30,8 @@
         <module>mongo</module>
         <module>kerberos</module>
         <module>hdfs</module>
+        <module>hbase</module>
+        <module>kafka</module>
+        <module>clickhouse</module>
     </modules>
 </project>

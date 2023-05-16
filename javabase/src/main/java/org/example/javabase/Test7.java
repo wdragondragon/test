@@ -34,8 +34,10 @@ public class Test7 {
 //            strings.add(trim);
 //        }
 //        FileUtil.writeLines(strings,"D:\\Desktop\\dump.log", "UTF-8");
-        assert true : "打印断言";
-        System.out.println("end");
+        String str = "=";
+
+        String s = JSONObject.toJSONString(str);
+        System.out.println(s);
     }
 
     public void test() {

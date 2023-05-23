@@ -69,9 +69,73 @@ public class HBase2xTest {
         }
     }
 
+    public void createNameSpace(String namespaceName) throws IOException {
+        // 判断命名空间是否存在
+        try {
+            NamespaceDescriptor namespace = admin.getNamespaceDescriptor(namespaceName);
+            if (namespace != null) {
+                log.info("命名空间已存在: " + namespaceName);
+            }
+        } catch (NamespaceNotFoundException e) {
+            // 创建命名空间描述符对象
+            NamespaceDescriptor namespaceDescriptor = NamespaceDescriptor.create(namespaceName).build();
+            // 创建命名空间
+            admin.createNamespace(namespaceDescriptor);
+            log.info("命名空间已创建: " + namespaceName);
+        }
+    }
+
     public void create(HBaseTable hBaseTable) throws IOException, HBaseException {
         Admin admin = getAmin();
+        String tableName = hBaseTable.getTableName();
+        String[] tableSplit = tableName.split(":");
+        if (tableSplit.length >= 2) {
+            createNameSpace(tableSplit[0]);
+        }
         // 创建表描述符对象
+        List<HBaseColumnFamily> HBaseColumnFamily = hBaseTable.getHBaseColumnFamily();
+        List<ColumnFamilyDescriptor> columnFamilyDescriptor = getColumnFamiliesDescriptor(HBaseColumnFamily);
+
+        TableDescriptorBuilder tableDescriptorBuilder = getTableDescriptorBuilder(hBaseTable);
+        tableDescriptorBuilder.setColumnFamilies(columnFamilyDescriptor);
+        TableDescriptor tableDescriptor = tableDescriptorBuilder.build();
+
+        Integer splitPolicy = hBaseTable.getSplitPolicy();
+        // 预分区策略
+        if (splitPolicy == null) {
+            throw new HBaseException("split policy is null");
+        } else if (splitPolicy == 1) {
+            String startKey = hBaseTable.getStartKey();
+            String endKey = hBaseTable.getEndKey();
+            admin.createTable(tableDescriptor, Bytes.toBytes(startKey), Bytes.toBytes(endKey), hBaseTable.getNumRegions());
+        } else if (splitPolicy == 2) {
+            List<String> splitKeysStr = hBaseTable.getSplitKeys();
+            byte[][] splitKeys = new byte[splitKeysStr.size()][];
+            for (int i = 0; i < splitKeysStr.size(); i++) {
+                splitKeys[i] = Bytes.toBytes(splitKeysStr.get(i));
+            }
+            admin.createTable(tableDescriptor, splitKeys);
+        } else if (splitPolicy == 3) {
+            String splitAlgorithmClassName = hBaseTable.getSplitAlgorithmClassName();
+            RegionSplitter.SplitAlgorithm splitAlgorithm;
+
+            if (RegionSplitter.HexStringSplit.class.getSimpleName().equalsIgnoreCase(splitAlgorithmClassName)) {
+                splitAlgorithm = new RegionSplitter.HexStringSplit();
+            } else if (RegionSplitter.DecimalStringSplit.class.getSimpleName().equalsIgnoreCase(splitAlgorithmClassName)) {
+                splitAlgorithm = new RegionSplitter.DecimalStringSplit();
+            } else if (RegionSplitter.UniformSplit.class.getSimpleName().equalsIgnoreCase(splitAlgorithmClassName)) {
+                splitAlgorithm = new RegionSplitter.UniformSplit();
+            } else {
+                throw new HBaseException("splitAlgorithmClassName is not support");
+            }
+            byte[][] split = splitAlgorithm.split(hBaseTable.getNumRegions());
+            admin.createTable(tableDescriptor, split);
+        } else {
+            throw new HBaseException("split policy  is not support");
+        }
+    }
+
+    public TableDescriptorBuilder getTableDescriptorBuilder(HBaseTable hBaseTable) {
         TableDescriptorBuilder tableDescriptorBuilder = TableDescriptorBuilder.newBuilder(TableName.valueOf(hBaseTable.getTableName()));
 //        tableDescriptorBuilder.setMaxFileSize(hBaseTable.getMaxFileSize());
 //        tableDescriptorBuilder.setMemStoreFlushSize(hBaseTable.getMemStoreFlushSize());
@@ -81,8 +145,38 @@ public class HBase2xTest {
 //        tableDescriptorBuilder.setReplicationScope(hBaseTable.getReplicationScope());
 //        tableDescriptorBuilder.setRegionReplication(hBaseTable.getRegionReplication());
 //        tableDescriptorBuilder.setRegionSplitPolicyClassName(hBaseTable.getRegionSplitPolicyClassName());
-        List<HBaseColumnFamily> HBaseColumnFamily = hBaseTable.getHBaseColumnFamily();
-        for (HBaseColumnFamily family : HBaseColumnFamily) {
+        //分区内的自动split策略
+        String regionSplitPolicyClassName = hBaseTable.getRegionSplitPolicyClassName();
+        if (regionSplitPolicyClassName != null && !regionSplitPolicyClassName.isEmpty()) {
+            switch (regionSplitPolicyClassName) {
+                case "ConstantSizeRegionSplitPolicy":
+                    tableDescriptorBuilder.setRegionSplitPolicyClassName(ConstantSizeRegionSplitPolicy.class.getName());
+                    break;
+                case "IncreasingToUpperBoundRegionSplitPolicy":
+                    tableDescriptorBuilder.setRegionSplitPolicyClassName(IncreasingToUpperBoundRegionSplitPolicy.class.getName());
+                    break;
+                case "SteppingSplitPolicy":
+                    tableDescriptorBuilder.setRegionSplitPolicyClassName(SteppingSplitPolicy.class.getName());
+                    break;
+                case "KeyPrefixRegionSplitPolicy":
+                    tableDescriptorBuilder.setRegionSplitPolicyClassName(KeyPrefixRegionSplitPolicy.class.getName());
+                    break;
+                case "DelimitedKeyPrefixRegionSplitPolicy":
+                    tableDescriptorBuilder.setRegionSplitPolicyClassName(DelimitedKeyPrefixRegionSplitPolicy.class.getName());
+                    break;
+                case "DisabledRegionSplitPolicy":
+                    tableDescriptorBuilder.setRegionSplitPolicyClassName(DisabledRegionSplitPolicy.class.getName());
+                    break;
+                default:
+                    break;
+            }
+        }
+        return tableDescriptorBuilder;
+    }
+
+    public List<ColumnFamilyDescriptor> getColumnFamiliesDescriptor(List<HBaseColumnFamily> hBaseColumnFamilies) throws IOException {
+        List<ColumnFamilyDescriptor> columnFamilyDescriptors = new LinkedList<>();
+        for (HBaseColumnFamily family : hBaseColumnFamilies) {
             ColumnFamilyDescriptorBuilder columnFamilyDescriptorBuilder = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(family.getName()));
 
             if (family.getVersions() != null) {
@@ -119,77 +213,38 @@ public class HBase2xTest {
 //            columnFamilyDescriptorBuilder.setKeepDeletedCells(KeepDeletedCells.valueOf(family.getKeepDeletedCells()));
 //            columnFamilyDescriptorBuilder.setDFSReplication(family.getDfsReplication());
             ColumnFamilyDescriptor columnFamilyDescriptor = columnFamilyDescriptorBuilder.build();
-            tableDescriptorBuilder.setColumnFamily(columnFamilyDescriptor);
+            columnFamilyDescriptors.add(columnFamilyDescriptor);
         }
+        return columnFamilyDescriptors;
+    }
 
-        //分区内的自动split策略
-        String regionSplitPolicyClassName = hBaseTable.getRegionSplitPolicyClassName();
-        if (regionSplitPolicyClassName != null && !regionSplitPolicyClassName.isEmpty()) {
-            switch (regionSplitPolicyClassName) {
-                case "ConstantSizeRegionSplitPolicy":
-                    tableDescriptorBuilder.setRegionSplitPolicyClassName(ConstantSizeRegionSplitPolicy.class.getName());
-                    break;
-                case "IncreasingToUpperBoundRegionSplitPolicy":
-                    tableDescriptorBuilder.setRegionSplitPolicyClassName(IncreasingToUpperBoundRegionSplitPolicy.class.getName());
-                    break;
-                case "SteppingSplitPolicy":
-                    tableDescriptorBuilder.setRegionSplitPolicyClassName(SteppingSplitPolicy.class.getName());
-                    break;
-                case "KeyPrefixRegionSplitPolicy":
-                    tableDescriptorBuilder.setRegionSplitPolicyClassName(KeyPrefixRegionSplitPolicy.class.getName());
-                    break;
-                case "DelimitedKeyPrefixRegionSplitPolicy":
-                    tableDescriptorBuilder.setRegionSplitPolicyClassName(DelimitedKeyPrefixRegionSplitPolicy.class.getName());
-                    break;
-                case "DisabledRegionSplitPolicy":
-                    tableDescriptorBuilder.setRegionSplitPolicyClassName(DisabledRegionSplitPolicy.class.getName());
-                    break;
-                default:
-                    break;
-            }
-        }
-        TableDescriptor tableDescriptor = tableDescriptorBuilder.build();
-        Integer splitPolicy = hBaseTable.getSplitPolicy();
-        // 预分区策略
-        if (splitPolicy == null) {
-            throw new HBaseException("split policy is null");
-        } else if (splitPolicy == 1) {
-            String startKey = hBaseTable.getStartKey();
-            String endKey = hBaseTable.getEndKey();
-            admin.createTable(tableDescriptor, Bytes.toBytes(startKey), Bytes.toBytes(endKey), hBaseTable.getNumRegions());
-        } else if (splitPolicy == 2) {
-            List<String> splitKeysStr = hBaseTable.getSplitKeys();
-            byte[][] splitKeys = new byte[splitKeysStr.size()][];
-            for (int i = 0; i < splitKeysStr.size(); i++) {
-                splitKeys[i] = Bytes.toBytes(splitKeysStr.get(i));
-            }
-            admin.createTable(tableDescriptor, splitKeys);
-        } else if (splitPolicy == 3) {
-            String splitAlgorithmClassName = hBaseTable.getSplitAlgorithmClassName();
-            RegionSplitter.SplitAlgorithm splitAlgorithm;
 
-            if (RegionSplitter.HexStringSplit.class.getSimpleName().equalsIgnoreCase(splitAlgorithmClassName)) {
-                splitAlgorithm = new RegionSplitter.HexStringSplit();
-            } else if (RegionSplitter.DecimalStringSplit.class.getSimpleName().equalsIgnoreCase(splitAlgorithmClassName)) {
-                splitAlgorithm = new RegionSplitter.DecimalStringSplit();
-            } else if (RegionSplitter.UniformSplit.class.getSimpleName().equalsIgnoreCase(splitAlgorithmClassName)) {
-                splitAlgorithm = new RegionSplitter.UniformSplit();
-            } else {
-                throw new HBaseException("splitAlgorithmClassName is not support");
-            }
-            byte[][] split = splitAlgorithm.split(hBaseTable.getNumRegions());
-            admin.createTable(tableDescriptor, split);
-        } else {
-            throw new HBaseException("split policy  is not support");
-        }
+    //修改表时，预分区不能修改
+    public void changeTable(HBaseTable hBaseTable) throws IOException {
+        TableDescriptorBuilder tableDescriptorBuilder = getTableDescriptorBuilder(hBaseTable);
+        getAmin().modifyTable(tableDescriptorBuilder.build());
     }
 
     public boolean existsTable(String tableName) throws IOException {
         return getAmin().tableExists(TableName.valueOf(tableName));
     }
 
+    public void addColumnFamily(String tableName, List<HBaseColumnFamily> hBaseColumnFamily) throws IOException {
+        List<ColumnFamilyDescriptor> columnFamilies = getColumnFamiliesDescriptor(hBaseColumnFamily);
+        for (ColumnFamilyDescriptor columnFamily : columnFamilies) {
+            getAmin().addColumnFamily(TableName.valueOf(tableName), columnFamily);
+        }
+    }
+
     public void deleteColumnFamily(String tableName, String columnFamily) throws IOException {
         getAmin().deleteColumnFamily(TableName.valueOf(tableName), Bytes.toBytes(columnFamily));
+    }
+
+    public void changeColumnFamily(String tableName, List<HBaseColumnFamily> hBaseColumnFamilies) throws IOException {
+        List<ColumnFamilyDescriptor> columnFamilyDescriptorList = getColumnFamiliesDescriptor(hBaseColumnFamilies);
+        for (ColumnFamilyDescriptor columnFamilyDescriptor : columnFamilyDescriptorList) {
+            getAmin().modifyColumnFamily(TableName.valueOf(tableName), columnFamilyDescriptor);
+        }
     }
 
     public void put(String tableName, String rowKey, String family, String qualifier, String value) throws IOException {
@@ -271,15 +326,18 @@ public class HBase2xTest {
         String userKeytabFile = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\zhjl.keytab";
         String krb5File = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\krb5.conf";
         Configuration config = HBaseConfiguration.create();
-        config.set("hbase.zookeeper.quorum", "centos1,centos2,centos3");
+        config.set("hbase.zookeeper.quorum", "node-10-194-186-214,node-10-194-186-215,node-10-194-186-216");
         config.set("hbase.zookeeper.property.clientPort", "2181");
         GetKerberosObject getKerberosObject = new GetKerberosObject("zhjl@HADOOP.COM", userKeytabFile, krb5File, config, false);
         HBase2xTest hBase2xTest = new HBase2xTest(config);
         getKerberosObject.doAs(() -> {
             hBase2xTest.connect();
 
-            createTest(hBase2xTest);
+//            createTest(hBase2xTest);
+//            addCF(hBase2xTest);
 //            scanTest(hBase2xTest, "mytable");
+            boolean b = hBase2xTest.existsTable("default_namespace:test_create_20230518_1609");
+            log.info(b + "");
             hBase2xTest.close();
         });
     }
@@ -311,6 +369,21 @@ public class HBase2xTest {
 
         HBaseTable tableInfo = hBase2xTest.getTableInfo("default_namespace:test_create_20230518_1609");
         log.info("tableInfo:{}", JSONObject.toJSONString(tableInfo));
+    }
+
+    public static void addCF(HBase2xTest hBase2xTest) throws HBaseException, IOException {
+        HBaseTable hBaseTable = new HBaseTable();
+        hBaseTable.setTableName("default_namespace:test_create_20230518_1609");
+        HBaseColumnFamily HBaseColumnFamily = new HBaseColumnFamily();
+        HBaseColumnFamily.setName("cf2");
+        HBaseColumnFamily.setVersions(3);
+        HBaseColumnFamily.setBlockSize(1024);
+        HBaseColumnFamily.setCompressionType("GZ");
+        HBaseColumnFamily.setDataBlockEncoding("FAST_DIFF");
+        HBaseColumnFamily.setTimeToLive(86400);
+        HBaseColumnFamily.setMinVersions(1);
+        HBaseColumnFamily.setBloomFilterType(BloomType.ROWCOL.name());
+        hBase2xTest.addColumnFamily(hBaseTable.getTableName(), Collections.singletonList(HBaseColumnFamily));
     }
 
     public static void scanTest(HBase2xTest hBase2xTest, String tableName) throws IOException {

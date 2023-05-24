@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.util.RegionSplitter;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 
 @Slf4j
@@ -240,11 +241,39 @@ public class HBase2xTest {
         getAmin().deleteColumnFamily(TableName.valueOf(tableName), Bytes.toBytes(columnFamily));
     }
 
+    public void deleteTable(String tableName) throws IOException {
+        getAmin().disableTable(TableName.valueOf(tableName));
+        getAmin().deleteTable(TableName.valueOf(tableName));
+    }
+
+    public boolean existData(String tableName) throws IOException {
+        Table table = getTable(tableName);
+        Scan scan = new Scan();
+        scan.readVersions(1);
+        ResultScanner scanner = table.getScanner(scan);
+        Result result = scanner.next();
+        scanner.close();
+        return result != null;
+    }
+
     public void changeColumnFamily(String tableName, List<HBaseColumnFamily> hBaseColumnFamilies) throws IOException {
         List<ColumnFamilyDescriptor> columnFamilyDescriptorList = getColumnFamiliesDescriptor(hBaseColumnFamilies);
         for (ColumnFamilyDescriptor columnFamilyDescriptor : columnFamilyDescriptorList) {
             getAmin().modifyColumnFamily(TableName.valueOf(tableName), columnFamilyDescriptor);
         }
+    }
+
+    public List<String> tableList(String tableNameRegex) {
+        List<String> tableList = new ArrayList<>();
+        try {
+            TableName[] tableNames = getAmin().listTableNames(Pattern.compile(tableNameRegex), true);
+            for (TableName tableName : tableNames) {
+                tableList.add(tableName.getNameAsString());
+            }
+        } catch (Exception e) {
+            log.error("get table list error", e);
+        }
+        return tableList;
     }
 
     public void put(String tableName, String rowKey, String family, String qualifier, String value) throws IOException {
@@ -322,6 +351,14 @@ public class HBase2xTest {
         return hBaseTable;
     }
 
+    public String queryVersion() throws IOException {
+        // 获取 HBase 集群状态信息
+        ClusterMetrics clusterMetrics = getAmin().getClusterMetrics();
+
+        // 获取 HBase 版本号
+        return clusterMetrics.getHBaseVersion();
+    }
+
     public static void main(String[] args) throws Exception {
         String userKeytabFile = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\zhjl.keytab";
         String krb5File = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\krb5.conf";
@@ -336,8 +373,11 @@ public class HBase2xTest {
 //            createTest(hBase2xTest);
 //            addCF(hBase2xTest);
 //            scanTest(hBase2xTest, "mytable");
-            boolean b = hBase2xTest.existsTable("default_namespace:test_create_20230518_1609");
-            log.info(b + "");
+//            System.out.println(hBase2xTest.existData("default_namespace:test_create_20230518_1609"));
+//            System.out.println(hBase2xTest.existData("test_empty"));
+//            List<String> strings = hBase2xTest.tableList("default_namespace:test_create_20230518_1609");
+//            System.out.println(strings);
+            System.out.println(hBase2xTest.queryVersion());
             hBase2xTest.close();
         });
     }

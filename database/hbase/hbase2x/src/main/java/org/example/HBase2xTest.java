@@ -1,6 +1,7 @@
 package org.example;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -93,6 +94,10 @@ public class HBase2xTest {
         String[] tableSplit = tableName.split(":");
         if (tableSplit.length >= 2) {
             createNameSpace(tableSplit[0]);
+        }
+        if (existsTable(tableName)) {
+            log.info("表已存在: " + tableName);
+            return;
         }
         // 创建表描述符对象
         List<HBaseColumnFamily> HBaseColumnFamily = hBaseTable.getHBaseColumnFamily();
@@ -238,6 +243,14 @@ public class HBase2xTest {
         }
     }
 
+    public boolean existsColumnFamily(String tableName, String columnFamily) throws IOException {
+        if (!existsTable(tableName)) {
+            return false;
+        }
+        Table table = getTable(tableName);
+        return table.getDescriptor().hasColumnFamily(Bytes.toBytes(columnFamily));
+    }
+
     public void deleteColumnFamily(String tableName, String columnFamily) throws IOException {
         getAmin().deleteColumnFamily(TableName.valueOf(tableName), Bytes.toBytes(columnFamily));
     }
@@ -380,17 +393,25 @@ public class HBase2xTest {
         config.addResource(new Path(coreSite));
         config.addResource(new Path(hbaseSite));
 
+        String testTableName = "test_create_20230518_1609";
+        String testFamilyName = "cf1";
         GetKerberosObject getKerberosObject = new GetKerberosObject(principal, userKeytabFile, krb5File, config, true);
         HBase2xTest hBase2xTest = new HBase2xTest(config);
-        Connection connection1 = getKerberosObject.doAs(hBase2xTest::connect);
-        System.out.println(hBase2xTest.queryVersion());
-        hBase2xTest.close();
+        getKerberosObject.doAs(hBase2xTest::connect);
+        List<String> strings = hBase2xTest.tableList(".*");
+        log.info("列表：" + JSONObject.toJSONString(strings, SerializerFeature.PrettyFormat));
+        createTest(hBase2xTest, testTableName);
+        addCF(hBase2xTest, testTableName, testFamilyName);
+        hBase2xTest.put(testTableName, "row1", testFamilyName, "c1", "v1");
+        scanTest(hBase2xTest, testTableName);
+        log.info(hBase2xTest.queryVersion());
+        getKerberosObject.doAs(hBase2xTest::close);
     }
 
 
-    public static void createTest(HBase2xTest hBase2xTest) throws HBaseException, IOException {
+    public static void createTest(HBase2xTest hBase2xTest, String tableName) throws HBaseException, IOException {
         HBaseTable hBaseTable = new HBaseTable();
-        hBaseTable.setTableName("default_namespace:test_create_20230518_1609");
+        hBaseTable.setTableName(tableName);
         hBaseTable.setRegionSplitPolicyClassName("org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
         hBaseTable.setSplitPolicy(3);
         hBaseTable.setSplitAlgorithmClassName("DecimalStringSplit");
@@ -412,15 +433,19 @@ public class HBase2xTest {
 
         hBase2xTest.create(hBaseTable);
 
-        HBaseTable tableInfo = hBase2xTest.getTableInfo("default_namespace:test_create_20230518_1609");
+        HBaseTable tableInfo = hBase2xTest.getTableInfo(tableName);
         log.info("tableInfo:{}", JSONObject.toJSONString(tableInfo));
     }
 
-    public static void addCF(HBase2xTest hBase2xTest) throws HBaseException, IOException {
+    public static void addCF(HBase2xTest hBase2xTest, String tableName, String cfName) throws HBaseException, IOException {
+        if (hBase2xTest.existsColumnFamily(tableName, cfName)) {
+            log.info("列族已存在");
+            return;
+        }
         HBaseTable hBaseTable = new HBaseTable();
-        hBaseTable.setTableName("default_namespace:test_create_20230518_1609");
+        hBaseTable.setTableName(tableName);
         HBaseColumnFamily HBaseColumnFamily = new HBaseColumnFamily();
-        HBaseColumnFamily.setName("cf2");
+        HBaseColumnFamily.setName(cfName);
         HBaseColumnFamily.setVersions(3);
         HBaseColumnFamily.setBlockSize(1024);
         HBaseColumnFamily.setCompressionType("GZ");

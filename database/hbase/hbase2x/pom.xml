@@ -9,7 +9,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <zookeeper.version>3.8.1</zookeeper.version>
+<!--        <zookeeper.version>3.8.1</zookeeper.version>-->
 <!--        <hbase.version>2.2.3</hbase.version>-->
 <!--        <hadoop.version>3.3.5</hadoop.version>-->
         <hbase.version>2.2.3-h0.cbu.mrs.320.r33</hbase.version>

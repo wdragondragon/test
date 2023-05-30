@@ -3,6 +3,7 @@ package org.example;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.exceptions.HBaseException;
@@ -34,8 +35,8 @@ public class HBase2xTest {
         this.config = configuration;
     }
 
-    public void connect() throws IOException {
-        connection = ConnectionFactory.createConnection(config);
+    public Connection connect() throws IOException {
+        return connection = ConnectionFactory.createConnection(config);
     }
 
     public Admin getAmin() throws IOException {
@@ -360,26 +361,30 @@ public class HBase2xTest {
     }
 
     public static void main(String[] args) throws Exception {
-        String userKeytabFile = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\zhjl.keytab";
-        String krb5File = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\krb5.conf";
+        String userKeytabFile = System.getProperty("krb5", "/bmdata/software/hbase/user.keytab");
+        String krb5File = System.getProperty("keytab", "/bmdata/software/hbase/krb5.conf");
+        String hosts = System.getProperty("hosts", "100.76.160.202,100.76.160.203");
+        String port = System.getProperty("port", "21300");
+//        String hosts = System.getProperty("hosts", "node-10-194-186-214,node-10-194-186-215,node-10-194-186-216");
+//        String port = System.getProperty("port", "2181");
+        String principal = System.getProperty("principal", "u_cmhk_basic_dev@HADOOP.COM");
+        String hdfsSite = System.getProperty("hdfsSite", "/bmdata/software/hbase/hdfs-site.xml");
+        String coreSite = System.getProperty("coreSite", "/bmdata/software/hbase/core-site.xml");
+        String hbaseSite = System.getProperty("hbaseSite", "/bmdata/software/hbase/hbase-site.xml");
+//        String userKeytabFile = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\zhjl.keytab";
+//        String krb5File = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\krb5.conf";
         Configuration config = HBaseConfiguration.create();
-        config.set("hbase.zookeeper.quorum", "node-10-194-186-214,node-10-194-186-215,node-10-194-186-216");
-        config.set("hbase.zookeeper.property.clientPort", "2181");
-        GetKerberosObject getKerberosObject = new GetKerberosObject("zhjl@HADOOP.COM", userKeytabFile, krb5File, config, false);
-        HBase2xTest hBase2xTest = new HBase2xTest(config);
-        getKerberosObject.doAs(() -> {
-            hBase2xTest.connect();
+//        config.set("hbase.zookeeper.quorum", hosts);
+//        config.set("hbase.zookeeper.property.clientPort", port);
+        config.addResource(new Path(hdfsSite));
+        config.addResource(new Path(coreSite));
+        config.addResource(new Path(hbaseSite));
 
-//            createTest(hBase2xTest);
-//            addCF(hBase2xTest);
-//            scanTest(hBase2xTest, "mytable");
-//            System.out.println(hBase2xTest.existData("default_namespace:test_create_20230518_1609"));
-//            System.out.println(hBase2xTest.existData("test_empty"));
-//            List<String> strings = hBase2xTest.tableList("default_namespace:test_create_20230518_1609");
-//            System.out.println(strings);
-            System.out.println(hBase2xTest.queryVersion());
-            hBase2xTest.close();
-        });
+        GetKerberosObject getKerberosObject = new GetKerberosObject(principal, userKeytabFile, krb5File, config, true);
+        HBase2xTest hBase2xTest = new HBase2xTest(config);
+        Connection connection1 = getKerberosObject.doAs(hBase2xTest::connect);
+        System.out.println(hBase2xTest.queryVersion());
+        hBase2xTest.close();
     }
 
 

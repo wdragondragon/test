@@ -55,18 +55,20 @@ public class GetKerberosObject {
         log.info("Kerberos login success, " + userGroupInformation.toString());
         doAs(() -> {
             privilegedExceptionAction.run();
-            return null;
+            return new Object();
         });
     }
 
     public UserGroupInformation initHadoopSecurity(String kerberosPrincipal, String kerberosKeytabFilePath, String krb5Conf, Configuration conf) throws IOException {
-        if (kerberosCache.containsKey(kerberosPrincipal + "-" + kerberosKeytabFilePath)) {
-            return kerberosCache.get(kerberosPrincipal + "-" + kerberosKeytabFilePath);
+        String loginContextName = "Client";
+        if (kerberosCache.containsKey(loginContextName)) {
+            return kerberosCache.get(loginContextName);
         }
-        LoginUtil.setJaasConf(kerberosPrincipal + "-" + kerberosKeytabFilePath, kerberosPrincipal, kerberosKeytabFilePath);
-        LoginUtil.setZookeeperServerPrincipal("zookeeper.server.principal", "zookeeper/hadoop");
+        LoginUtil.setJaasConf(loginContextName, kerberosPrincipal, kerberosKeytabFilePath);
+//        LoginUtil.setJaasConf(kerberosPrincipal + "-" + kerberosKeytabFilePath, kerberosPrincipal, kerberosKeytabFilePath);
+//        LoginUtil.setZookeeperServerPrincipal("zookeeper.server.principal", "zookeeper/hadoop");
         UserGroupInformation login = LoginUtil.login(kerberosPrincipal, kerberosKeytabFilePath, krb5Conf, conf);
-        kerberosCache.put(kerberosPrincipal + "-" + kerberosKeytabFilePath, login);
+        kerberosCache.put(loginContextName, login);
         return login;
     }
 

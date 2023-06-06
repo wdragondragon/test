@@ -1,5 +1,6 @@
 package com.jdragon.springboot.test;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.jdragon.springboot.commons.Result;
@@ -14,6 +15,8 @@ import org.springframework.web.client.RestTemplate;
 import java.awt.print.Book;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -77,5 +80,16 @@ public class TestController {
     public Result<User> reg(@RequestBody User user) {
         User user1 = new User(1, user.getUsername(), user.getPassword(), 22, "17520067544");
         return Result.success(user1);
+    }
+
+    public static void main(String[] args) {
+        List<User> userList = new LinkedList<>();
+        for (int i = 0; i < 10; i++) {
+            User user1 = new User(i, "名字" + i, "password" + i, 20 + i, "17520067544");
+            userList.add(user1);
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("data", userList);
+        System.out.println(JSONObject.toJSONString(jsonObject));
     }
 }

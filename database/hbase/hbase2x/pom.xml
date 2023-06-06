@@ -12,8 +12,8 @@
 <!--        <zookeeper.version>3.8.1</zookeeper.version>-->
 <!--        <hbase.version>2.2.3</hbase.version>-->
 <!--        <hadoop.version>3.3.5</hadoop.version>-->
-        <hbase.version>2.2.3-h0.cbu.mrs.320.r33</hbase.version>
-        <hadoop.version>3.3.1-h0.cbu.mrs.320.r33</hadoop.version>
+        <hbase.version>2.2.3-hw-ei-312005</hbase.version>
+        <hadoop.version>3.1.1-hw-ei-312005</hadoop.version>
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>

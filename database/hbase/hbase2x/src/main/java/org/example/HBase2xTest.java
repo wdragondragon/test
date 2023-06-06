@@ -376,8 +376,8 @@ public class HBase2xTest {
     public static void main(String[] args) throws Exception {
         String userKeytabFile = System.getProperty("krb5", "/bmdata/software/hbase/user.keytab");
         String krb5File = System.getProperty("keytab", "/bmdata/software/hbase/krb5.conf");
-        String hosts = System.getProperty("hosts", "100.76.160.202,100.76.160.203");
-        String port = System.getProperty("port", "21300");
+        String hosts = System.getProperty("hosts", "cnsz92pl00660,cnsz92pl00662,cnsz92pl00661");
+        String port = System.getProperty("port", "24002");
 //        String hosts = System.getProperty("hosts", "node-10-194-186-214,node-10-194-186-215,node-10-194-186-216");
 //        String port = System.getProperty("port", "2181");
         String principal = System.getProperty("principal", "u_cmhk_basic_dev@HADOOP.COM");
@@ -387,8 +387,8 @@ public class HBase2xTest {
 //        String userKeytabFile = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\zhjl.keytab";
 //        String krb5File = "D:\\dev\\IdeaProjects\\test\\database\\hbase\\hbase2x\\src\\main\\resources\\krb5.conf";
         Configuration config = HBaseConfiguration.create();
-//        config.set("hbase.zookeeper.quorum", hosts);
-//        config.set("hbase.zookeeper.property.clientPort", port);
+        config.set("hbase.zookeeper.quorum", hosts);
+        config.set("hbase.zookeeper.property.clientPort", port);
         config.addResource(new Path(hdfsSite));
         config.addResource(new Path(coreSite));
         config.addResource(new Path(hbaseSite));

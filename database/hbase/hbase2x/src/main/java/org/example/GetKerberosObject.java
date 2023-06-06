@@ -60,7 +60,7 @@ public class GetKerberosObject {
     }
 
     public UserGroupInformation initHadoopSecurity(String kerberosPrincipal, String kerberosKeytabFilePath, String krb5Conf, Configuration conf) throws IOException {
-        String loginContextName = "Client";
+        String loginContextName = kerberosPrincipal + kerberosKeytabFilePath;
         if (kerberosCache.containsKey(loginContextName)) {
             return kerberosCache.get(loginContextName);
         }

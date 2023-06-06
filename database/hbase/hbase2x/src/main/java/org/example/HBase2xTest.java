@@ -88,6 +88,17 @@ public class HBase2xTest {
         }
     }
 
+    public void truncate(String tableName){
+        try {
+            Admin admin = getAmin();
+            admin.disableTable(TableName.valueOf(tableName));
+            admin.truncateTable(TableName.valueOf(tableName), true);
+            log.info("truncate table success: " + tableName);
+        } catch (IOException e) {
+            log.error("truncate table error: " + tableName, e);
+        }
+    }
+
     public void create(HBaseTable hBaseTable) throws IOException, HBaseException {
         Admin admin = getAmin();
         String tableName = hBaseTable.getTableName();
@@ -401,6 +412,7 @@ public class HBase2xTest {
         List<String> strings = hBase2xTest.tableList(".*");
         log.info("列表：" + JSONObject.toJSONString(strings, SerializerFeature.PrettyFormat));
         createTest(hBase2xTest, testTableName);
+        hBase2xTest.truncate(testTableName);
         addCF(hBase2xTest, testTableName, testFamilyName);
         hBase2xTest.put(testTableName, "row1", testFamilyName, "c1", "v1");
         scanTest(hBase2xTest, testTableName);

@@ -88,7 +88,7 @@ public class HBase2xTest {
         }
     }
 
-    public void truncate(String tableName){
+    public void truncate(String tableName) {
         try {
             Admin admin = getAmin();
             admin.disableTable(TableName.valueOf(tableName));
@@ -404,11 +404,13 @@ public class HBase2xTest {
         config.addResource(new Path(coreSite));
         config.addResource(new Path(hbaseSite));
 
-        String testTableName = "test_create_20230518_1609";
+
+        String testTableName = System.getProperty("tableName", "test_create_20230518_1609");
         String testFamilyName = "cf1";
         GetKerberosObject getKerberosObject = new GetKerberosObject(principal, userKeytabFile, krb5File, config, true);
         HBase2xTest hBase2xTest = new HBase2xTest(config);
         getKerberosObject.doAs(hBase2xTest::connect);
+        hBase2xTest.printInfo();
         List<String> strings = hBase2xTest.tableList(".*");
         log.info("列表：" + JSONObject.toJSONString(strings, SerializerFeature.PrettyFormat));
         createTest(hBase2xTest, testTableName);
@@ -486,5 +488,22 @@ public class HBase2xTest {
                 System.out.println("col:" + family + ":" + qualifier + ",value:" + value);
             }
         }
+    }
+
+
+    public void printInfo() throws IOException {
+        Admin amin = getAmin();
+        String jarFilePath = amin.getClass().getProtectionDomain().getCodeSource().getLocation().getFile();
+        jarFilePath = java.net.URLDecoder.decode(jarFilePath, "UTF-8");
+        log.info("jarFilePath:{}", jarFilePath);
+        ClusterMetrics clusterMetrics = getAmin().getClusterMetrics();
+        String hBaseVersion = clusterMetrics.getHBaseVersion();
+        log.info("hBaseVersion:{}", hBaseVersion);
+        List<ServerName> deadServerNames = clusterMetrics.getDeadServerNames();
+        log.info("deadServerNames:{}", JSONObject.toJSONString(deadServerNames));
+        ServerName masterName = clusterMetrics.getMasterName();
+        log.info("masterName:{}", JSONObject.toJSONString(masterName));
+        List<ServerName> serversName = clusterMetrics.getServersName();
+        log.info("serversName:{}", JSONObject.toJSONString(serversName));
     }
 }

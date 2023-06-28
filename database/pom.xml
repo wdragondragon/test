@@ -33,5 +33,6 @@
         <module>hbase</module>
         <module>kafka</module>
         <module>clickhouse</module>
+        <module>gauss-dws</module>
     </modules>
 </project>

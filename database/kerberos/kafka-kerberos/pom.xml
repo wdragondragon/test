@@ -16,9 +16,10 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <zookeeper.version>3.6.3-hw-ei-312005</zookeeper.version>
-        <kafka.version>2.4.0-hw-ei-312005</kafka.version>
-<!--        <kafka.version>2.4.0</kafka.version>-->
+<!--        <zookeeper.version>3.6.3-hw-ei-312005</zookeeper.version>-->
+<!--        <kafka.version>2.4.0-hw-ei-312005</kafka.version>-->
+        <kafka.version>2.4.0</kafka.version>
+        <zookeeper.version>3.8.1</zookeeper.version>
 <!--        <kafka.version>1.1.0-hw</kafka.version>-->
 <!--        <zookeeper.version>3.5.1-hw</zookeeper.version>-->
     </properties>

@@ -21,6 +21,7 @@
         <module>leetcode</module>
         <module>peer2peer</module>
         <module>spring-rabbit-mq</module>
+        <module>native-test</module>
     </modules>
 
     <name>test</name>

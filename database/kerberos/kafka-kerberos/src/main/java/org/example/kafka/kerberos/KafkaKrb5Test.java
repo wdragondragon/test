@@ -2,6 +2,7 @@ package org.example.kafka.kerberos;
 
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.config.SaslConfigs;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,24 +17,26 @@ import java.util.Properties;
 public class KafkaKrb5Test {
 
 //    public static final String brokerList = System.getProperty("brokerList", "cnsz92pl00578:21007,cnsz92pl00575:21007,cnsz92pl00574:21007");
-//    public static final String brokerList = System.getProperty("brokerList", "100.76.160.5:21007,100.76.160.6:21007,100.76.160.7:21007");
-//    public static final String userPrincipal = System.getProperty("user", "wedata_poc@HADOOP_DI.COM");
-//    public static final String krb5ConfigPath = System.getProperty("krb5Conf", "/data/bmdata/software/hdfs/krb5.conf");
-//    public static final String keytabPath = System.getProperty("keytab", "/data/bmdata/software/hdfs/user.keytab");
-//    public static final String domain = System.getProperty("domain", "HADOOP.HADOOP_DI.COM");
+    public static final String brokerList = System.getProperty("brokerList", "100.76.160.5:21007,100.76.160.6:21007,100.76.160.7:21007");
+    public static final String userPrincipal = System.getProperty("user", "wedata_poc@HADOOP_DI.COM");
+    public static final String krb5ConfigPath = System.getProperty("krb5Conf", "/data/bmdata/software/hdfs/krb5.conf");
+    public static final String keytabPath = System.getProperty("keytab", "/data/bmdata/software/hdfs/user.keytab");
+    public static final String domain = System.getProperty("domain", "HADOOP.HADOOP_DI.COM");
 
     //       public static final String userPrincipal = System.getProperty("user", "kafka/hadoop.hadoop.com@HADOOP.COM");
 //       public static final String krb5ConfigPath = System.getProperty("krb5conf", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf");
 //       public static final String keytabPath = System.getProperty("keytab", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/kafka@hadoop.keytab");
-    public static final String brokerList = System.getProperty("brokerList", "kafka.tyu.wiki:19091,kafka.tyu.wiki:19092,kafka.tyu.wiki:19093");
-//    public static final String brokerList = System.getProperty("brokerList", "centos1:19091,centos2:19092,centos3:19093");
-    public static final String userPrincipal = System.getProperty("user", "zhjl@HADOOP.COM");
-    public static final String krb5ConfigPath = System.getProperty("krb5conf", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf");
-    public static final String keytabPath = System.getProperty("keytab", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/zhjl.keytab");
-    public static final String domain = System.getProperty("domain", "kafka.tyu.wiki");
+//    public static final String brokerList = System.getProperty("brokerList", "kafka.tyu.wiki:19091,kafka.tyu.wiki:19092,kafka.tyu.wiki:19093");
+//    public static final String brokerList = "10.194.183.120:9092";
+    //    public static final String brokerList = System.getProperty("brokerList", "centos1:19091,centos2:19092,centos3:19093");
+//    public static final String userPrincipal = System.getProperty("user", "zhjl@HADOOP.COM");
+//    public static final String krb5ConfigPath = System.getProperty("krb5conf", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/krb5.conf");
+//    public static final String keytabPath = System.getProperty("keytab", "D:/dev/IdeaProjects/test/database/kerberos/kafka-kerberos/src/main/resources/zhjl.keytab");
+//    public static final String domain = System.getProperty("domain", "kafka.tyu.wiki");
 
     public static void main(String[] args) throws IOException {
         Properties properties = login(userPrincipal, krb5ConfigPath, keytabPath, domain);
+//        Properties properties = loginScram("admin", "admin-sec");
         KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(properties);
         Map<String, List<PartitionInfo>> stringListMap = kafkaConsumer.listTopics();
         System.out.println(stringListMap);
@@ -50,6 +53,15 @@ public class KafkaKrb5Test {
         props.put("sasl.mechanism", "GSSAPI");
         props.put("kerberos.domain.name", domain);
         props.put("sasl.jaas.config", getModuleContext(principal, keytabPath));
+        return props;
+    }
+
+    public static Properties loginScram(String username, String password) throws IOException {
+        Properties props = initProperties();
+        props.put("security.protocol", "SASL_PLAINTEXT");
+        props.put("sasl.mechanism", "SCRAM-SHA-256");
+        props.put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.scram.ScramLoginModule required " +
+                "username=\"" + username + "\" password=\"" + password + "\";");
         return props;
     }
 

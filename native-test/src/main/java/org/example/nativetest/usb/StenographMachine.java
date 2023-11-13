@@ -1,9 +1,7 @@
 package org.example.nativetest.usb;
 
-import com.sun.jna.platform.win32.Guid;
-import com.sun.jna.platform.win32.WinBase;
-import com.sun.jna.platform.win32.WinDef.DWORD;
-import com.sun.jna.platform.win32.WinNT;
+import com.sun.jna.platform.win32.*;
+import com.sun.jna.ptr.IntByReference;
 
 import java.nio.ByteBuffer;
 
@@ -14,9 +12,9 @@ import java.nio.ByteBuffer;
  */
 
 public class StenographMachine {
-    static SetupApiExample.SetupApi setupApi = SetupApiExample.SetupApi.INSTANCE;
+    static SetupApi setupApi = SetupApi.INSTANCE;
 
-    static FileApiExample.Kernel32 kernel32 = FileApiExample.Kernel32.INSTANCE;
+    static Kernel32 kernel32 = Kernel32.INSTANCE;
 
     Guid.GUID USB_WRITER_GUID = createGuid("c5682e20-8059-604a-b761-77c4de9d5dbf");
 
@@ -114,7 +112,7 @@ public class StenographMachine {
     }
 
     public WinNT.HANDLE _open_device_by_class_interface_and_instance(Guid.GUID class_guid) {
-        WinNT.HANDLE device_info = setupApi.SetupDiGetClassDevsW(new Guid.GUID(class_guid), null, null,
+        WinNT.HANDLE device_info = setupApi.SetupDiGetClassDevs(new Guid.GUID(class_guid), null, null,
                 DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
         if (device_info == INVALID_HANDLE_VALUE) {
             System.err.println("SetupDiGetClassDevs: " + kernel32.GetLastError());
@@ -133,7 +131,7 @@ public class StenographMachine {
 
         if (!setupApi.SetupDiEnumDeviceInterfaces(
                 device_info, null, guid, // Replace MemberIndex with the desired index
-                new DWORD(0), dev_interface_data)) {
+                0, dev_interface_data)) {
             if (kernel32.GetLastError() != ERROR_NO_MORE_ITEMS) {
                 System.err.println("SetupDiEnumDeviceInterfaces: " + kernel32.GetLastError());
             }
@@ -142,12 +140,11 @@ public class StenographMachine {
 
         SetupApiExample.SetupApi.SP_DEVICE_INTERFACE_DETAIL_DATA_A dev_detail_data_ptr = new SetupApiExample.SetupApi.SP_DEVICE_INTERFACE_DETAIL_DATA_A();
         dev_detail_data_ptr.cbSize = dev_detail_data_ptr.size();
-        DWORD deviceInterfaceDetailDataSize = new DWORD(dev_detail_data_ptr.size());
         if (!setupApi.SetupDiGetDeviceInterfaceDetail(
                 device_info,
                 dev_interface_data,
-                dev_detail_data_ptr,
-                deviceInterfaceDetailDataSize,
+                dev_detail_data_ptr.getPointer(),
+                dev_detail_data_ptr.size(),
                 null,
                 null)) {
 
@@ -159,15 +156,14 @@ public class StenographMachine {
 
         System.out.println("okay, creating file, device path: " + devicePath);
 
-        DWORD dwDesiredAccess = new DWORD(WinNT.GENERIC_READ | WinNT.GENERIC_WRITE);
-        DWORD dwShareMode = new DWORD(WinNT.FILE_SHARE_READ | WinNT.FILE_SHARE_WRITE);
-        WinBase.SECURITY_ATTRIBUTES lpSecurityAttributes = null;
-        DWORD dwCreationDisposition = new DWORD(WinNT.CREATE_ALWAYS);
-        DWORD dwFlagsAndAttributes = new DWORD(WinNT.FILE_ATTRIBUTE_NORMAL);
-        WinNT.HANDLE hTemplateFile = null;
         // Create file handle
-        WinNT.HANDLE handle = kernel32.CreateFileA(devicePath, dwDesiredAccess, dwShareMode, lpSecurityAttributes,
-                dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+        WinNT.HANDLE handle = kernel32.CreateFile(devicePath,
+                WinNT.GENERIC_READ | WinNT.GENERIC_WRITE,
+                WinNT.FILE_SHARE_READ | WinNT.FILE_SHARE_WRITE,
+                null,
+                WinNT.CREATE_ALWAYS,
+                WinNT.FILE_ATTRIBUTE_NORMAL,
+                null);
 
         if (handle == INVALID_HANDLE_VALUE) {
             System.err.println("CreateFile: " + kernel32.GetLastError());
@@ -180,8 +176,8 @@ public class StenographMachine {
         // Perform USB write operation
         if (!kernel32.INSTANCE.WriteFile(this._usb_device,
                 requestPacket,
-                new DWORD(MAX_READ + HEADER_SIZE),
-                new DWORD(0),
+                MAX_READ + HEADER_SIZE,
+                new IntByReference(0),
                 null)) {
             System.err.println("WriteFile. Error code: " + kernel32.INSTANCE.GetLastError());
             return 0;
@@ -191,12 +187,12 @@ public class StenographMachine {
 
     public StenoPacket _usb_read_packet() {
         // Replace with your actual read buffer
-        DWORD bytesRead = new DWORD(0);
+        IntByReference bytesRead = new IntByReference(0);
         // 调用ReadFile函数
         boolean result = kernel32.INSTANCE.ReadFile(
                 this._usb_device,
-                this._read_buffer,
-                new DWORD(MAX_READ + StenoPacket.HEADER_SIZE),
+                this._read_buffer.array(),
+                MAX_READ + StenoPacket.HEADER_SIZE,
                 bytesRead,
                 null
         );
@@ -207,8 +203,8 @@ public class StenographMachine {
         }
 
         // Return null if not enough data was read
-        if (bytesRead.longValue() < StenoPacket.HEADER_SIZE) {
-            System.err.println("ReadFile: short read, " + bytesRead.longValue() + " < " + StenoPacket.HEADER_SIZE);
+        if (bytesRead.getValue() < StenoPacket.HEADER_SIZE) {
+            System.err.println("ReadFile: short read, " + bytesRead.getValue() + " < " + StenoPacket.HEADER_SIZE);
             return null;
         }
         byte[] array = this._read_buffer.array();

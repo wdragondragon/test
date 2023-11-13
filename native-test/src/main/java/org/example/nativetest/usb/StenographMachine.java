@@ -5,6 +5,11 @@ import com.sun.jna.ptr.IntByReference;
 
 import java.nio.ByteBuffer;
 
+import static com.sun.jna.platform.win32.DBT.GUID_DEVINTERFACE_USB_DEVICE;
+import static com.sun.jna.platform.win32.SetupApi.DIGCF_DEVICEINTERFACE;
+import static com.sun.jna.platform.win32.SetupApi.DIGCF_PRESENT;
+import static com.sun.jna.platform.win32.WinError.ERROR_NO_MORE_ITEMS;
+
 /**
  * @author JDragon
  * @date 2023/11/13 13:12
@@ -16,25 +21,16 @@ public class StenographMachine {
 
     static Kernel32 kernel32 = Kernel32.INSTANCE;
 
-    Guid.GUID USB_WRITER_GUID = createGuid("c5682e20-8059-604a-b761-77c4de9d5dbf");
+    static String guid = System.getProperty("guid", "{c5682e20-8059-604a-b761-77c4de9d5dbf}");
+//    static String guid = System.getProperty("guid", "{4d36e96c-e325-11ce-bfc1-08002be10318}");
 
-    int CREATE_ALWAYS = 2;
-    int CREATE_NEW = 1;
+    static {
+        System.out.println("guid:" + guid);
+    }
 
-    int DIGCF_DEVICEINTERFACE = 0x00000010;
-    int DIGCF_PRESENT = 0x00000002;
-
-
-    static int ERROR_INSUFFICIENT_BUFFER = 0x0000007A;
-    static int ERROR_NO_MORE_ITEMS = 0x00000103;
-
-    int FILE_ATTRIBUTE_NORMAL = 0x80;
-
-    int FILE_SHARE_READ = 0x00000001;
-    int FILE_SHARE_WRITE = 0x00000002;
-    int GENERIC_READ = 0x80000000;
-    int GENERIC_WRITE = 0x40000000;
-
+    Guid.GUID USB_WRITER_GUID = Guid.GUID.fromString(guid);
+//    Guid.GUID USB_WRITER_GUID = GUID_DEVINTERFACE_USB_DEVICE;
+//    Guid.GUID USB_WRITER_GUID = new Guid.GUID("{4d36e96b-e325-11ce-bfc1-08002be10318}");
 
     String _STRUCT_FORMAT = "<2sIH6I";
 
@@ -131,14 +127,23 @@ public class StenographMachine {
         dev_interface_data.cbSize = dev_interface_data.size();
 
         if (!setupApi.SetupDiEnumDeviceInterfaces(
-                device_info, null, guid, // Replace MemberIndex with the desired index
+                device_info, null, guid,
                 0, dev_interface_data)) {
 
             if (kernel32.GetLastError() != ERROR_NO_MORE_ITEMS) {
                 System.err.println("SetupDiEnumDeviceInterfaces: " + kernel32.GetLastError());
-            }else{
-                System.err.println("device not found");
             }
+            return INVALID_HANDLE_VALUE;
+        }
+        IntByReference request_length = new IntByReference();
+        if (!setupApi.SetupDiGetDeviceInterfaceDetail(
+                device_info,
+                dev_interface_data,
+                null,
+                0,
+                request_length,
+                null)) {
+            System.err.println("SetupDiGetDeviceInterfaceDetail: " + kernel32.GetLastError());
             return INVALID_HANDLE_VALUE;
         }
 
@@ -151,10 +156,11 @@ public class StenographMachine {
                 dev_detail_data_ptr.size(),
                 null,
                 null)) {
-
             System.err.println("SetupDiGetDeviceInterfaceDetail: " + kernel32.GetLastError());
             return INVALID_HANDLE_VALUE;
         }
+
+
         // Access device interface detail information as needed
         String devicePath = new String(dev_detail_data_ptr.DevicePath);
 

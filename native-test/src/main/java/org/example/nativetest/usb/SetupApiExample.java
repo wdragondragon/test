@@ -40,6 +40,7 @@ public class SetupApiExample {
         class SP_DEVICE_INTERFACE_DETAIL_DATA_A extends Structure {
             public int cbSize;
             public char[] DevicePath = new char[1]; // Adjust the size based on your requirements
+
         }
 
         HANDLE SetupDiGetClassDevsW(Guid.GUID ClassGuid, String Enumerator, WinDef.HWND hwndParent, int Flags);

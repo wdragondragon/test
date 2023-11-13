@@ -1,15 +1,12 @@
 package org.example.nativetest.usb;
 
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.WinBase;
-import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinBase.OVERLAPPED;
+import com.sun.jna.platform.win32.WinBase.SECURITY_ATTRIBUTES;
+import com.sun.jna.platform.win32.WinDef.DWORD;
 import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.platform.win32.WinNT.HANDLE;
-import com.sun.jna.platform.win32.WinBase.OVERLAPPED;
-import com.sun.jna.platform.win32.WinDef.DWORD;
-import com.sun.jna.platform.win32.WinDef.LPVOID;
-import com.sun.jna.platform.win32.WinBase.SECURITY_ATTRIBUTES;
 
 import java.nio.ByteBuffer;
 

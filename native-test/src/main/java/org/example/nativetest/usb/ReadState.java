@@ -1,11 +1,14 @@
 package org.example.nativetest.usb;
 
+import lombok.Getter;
+
 /**
  * @author JDragon
  * @date 2023/11/13 16:36
  * @description
  */
 
+@Getter
 public class ReadState {
 
     private boolean realtime;
@@ -20,18 +23,6 @@ public class ReadState {
         this.realtime_file_open = false;
 
         this.offset = 0;
-    }
-
-    public boolean isRealtime() {
-        return realtime;
-    }
-
-    public boolean isRealtime_file_open() {
-        return realtime_file_open;
-    }
-
-    public int getOffset() {
-        return offset;
     }
 
     public void setRealtime(boolean realtime) {

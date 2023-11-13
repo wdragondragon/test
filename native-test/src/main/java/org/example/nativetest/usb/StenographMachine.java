@@ -1,7 +1,5 @@
 package org.example.nativetest.usb;
 
-import com.sun.jna.Memory;
-import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Guid;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.platform.win32.WinDef.DWORD;

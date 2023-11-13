@@ -95,6 +95,7 @@ public class StenographMachine {
     }
 
     public Guid.GUID createGuid(String uuidString) {
+//        return new Guid.GUID(uuidString);
         // Parse the UUID string
         java.util.UUID uuid = java.util.UUID.fromString(uuidString);
 
@@ -112,7 +113,7 @@ public class StenographMachine {
     }
 
     public WinNT.HANDLE _open_device_by_class_interface_and_instance(Guid.GUID class_guid) {
-        WinNT.HANDLE device_info = setupApi.SetupDiGetClassDevs(new Guid.GUID(class_guid), null, null,
+        WinNT.HANDLE device_info = setupApi.SetupDiGetClassDevs(class_guid, null, null,
                 DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
         if (device_info == INVALID_HANDLE_VALUE) {
             System.err.println("SetupDiGetClassDevs: " + kernel32.GetLastError());
@@ -132,8 +133,11 @@ public class StenographMachine {
         if (!setupApi.SetupDiEnumDeviceInterfaces(
                 device_info, null, guid, // Replace MemberIndex with the desired index
                 0, dev_interface_data)) {
+
             if (kernel32.GetLastError() != ERROR_NO_MORE_ITEMS) {
                 System.err.println("SetupDiEnumDeviceInterfaces: " + kernel32.GetLastError());
+            }else{
+                System.err.println("device not found");
             }
             return INVALID_HANDLE_VALUE;
         }

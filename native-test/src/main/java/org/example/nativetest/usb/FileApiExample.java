@@ -11,6 +11,8 @@ import com.sun.jna.platform.win32.WinDef.DWORD;
 import com.sun.jna.platform.win32.WinDef.LPVOID;
 import com.sun.jna.platform.win32.WinBase.SECURITY_ATTRIBUTES;
 
+import java.nio.ByteBuffer;
+
 public class FileApiExample {
 
     public interface Kernel32 extends com.sun.jna.Library {
@@ -20,11 +22,12 @@ public class FileApiExample {
                            SECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes,
                            HANDLE hTemplateFile);
 
-        boolean ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, WinDef.DWORDByReference lpNumberOfBytesRead,
-                         OVERLAPPED lpOverlapped);
+        boolean ReadFile(HANDLE hFile, ByteBuffer lpBuffer, DWORD nNumberOfBytesToRead,
+                         DWORD lpNumberOfBytesRead, OVERLAPPED lpOverlapped);
 
-        boolean WriteFile(HANDLE hFile, Pointer lpBuffer, DWORD nNumberOfBytesToWrite,
-                          WinDef.DWORDByReference lpNumberOfBytesWritten, OVERLAPPED lpOverlapped);
+
+        boolean WriteFile(HANDLE hFile, byte[] lpBuffer, DWORD nNumberOfBytesToWrite,
+                          DWORD lpNumberOfBytesWritten, OVERLAPPED lpOverlapped);
 
         boolean CloseHandle(HANDLE hObject);
 

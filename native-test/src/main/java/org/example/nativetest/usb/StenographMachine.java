@@ -1,5 +1,7 @@
 package org.example.nativetest.usb;
 
+import com.sun.jna.Memory;
+import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Guid;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.platform.win32.WinDef.DWORD;
@@ -59,6 +61,7 @@ public class StenographMachine {
             System.err.println("连接失败！");
         }
     }
+
 
     public static int calculateStructSize(String format) {
         int size = 0;
@@ -172,5 +175,56 @@ public class StenographMachine {
             System.err.println("CreateFile: " + kernel32.GetLastError());
         }
         return handle;
+    }
+
+
+    public int _usb_writer_packet(byte[] requestPacket) {
+        // Perform USB write operation
+        if (!kernel32.INSTANCE.WriteFile(this._usb_device,
+                requestPacket,
+                new DWORD(MAX_READ + HEADER_SIZE),
+                new DWORD(0),
+                null)) {
+            System.err.println("WriteFile. Error code: " + kernel32.INSTANCE.GetLastError());
+            return 0;
+        }
+        return requestPacket.length;
+    }
+
+    public StenoPacket _usb_read_packet() {
+        // Replace with your actual read buffer
+        DWORD bytesRead = new DWORD(0);
+        // 调用ReadFile函数
+        boolean result = kernel32.INSTANCE.ReadFile(
+                this._usb_device,
+                this._read_buffer,
+                new DWORD(MAX_READ + StenoPacket.HEADER_SIZE),
+                bytesRead,
+                null
+        );
+        // Perform USB read operation
+        if (!result) {
+            System.err.println("ReadFile failed. Error code: " + kernel32.INSTANCE.GetLastError());
+            return null;
+        }
+
+        // Return null if not enough data was read
+        if (bytesRead.longValue() < StenoPacket.HEADER_SIZE) {
+            System.err.println("ReadFile: short read, " + bytesRead.longValue() + " < " + StenoPacket.HEADER_SIZE);
+            return null;
+        }
+        byte[] array = this._read_buffer.array();
+        return StenoPacket.unpack(array);
+    }
+
+    public StenoPacket send_receive(StenoPacket request) {
+        if (this._usb_device == INVALID_HANDLE_VALUE) {
+            throw new RuntimeException("device not open");
+        }
+        int i = this._usb_writer_packet(request.pack());
+        if (i < StenoPacket.HEADER_SIZE) {
+            return null;
+        }
+        return this._usb_read_packet();
     }
 }

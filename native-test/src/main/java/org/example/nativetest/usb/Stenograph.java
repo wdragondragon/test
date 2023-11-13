@@ -10,7 +10,7 @@ import java.io.IOException;
  */
 public class Stenograph {
 
-    private StenographMachine _machine;
+    private final StenographMachine _machine;
 
 
     public Stenograph() {

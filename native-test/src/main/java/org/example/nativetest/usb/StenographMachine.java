@@ -5,7 +5,6 @@ import com.sun.jna.ptr.IntByReference;
 
 import java.nio.ByteBuffer;
 
-import static com.sun.jna.platform.win32.DBT.GUID_DEVINTERFACE_USB_DEVICE;
 import static com.sun.jna.platform.win32.SetupApi.DIGCF_DEVICEINTERFACE;
 import static com.sun.jna.platform.win32.SetupApi.DIGCF_PRESENT;
 import static com.sun.jna.platform.win32.WinError.ERROR_NO_MORE_ITEMS;
@@ -21,14 +20,14 @@ public class StenographMachine {
 
     static Kernel32 kernel32 = Kernel32.INSTANCE;
 
-    static String guid = System.getProperty("guid", "{c5682e20-8059-604a-b761-77c4de9d5dbf}");
+    static String guid = System.getProperty("guid", "{C5682E20-8059-604A-B761-77C4DE9D5DBF}");
 //    static String guid = System.getProperty("guid", "{4d36e96c-e325-11ce-bfc1-08002be10318}");
 
     static {
         System.out.println("guid:" + guid);
     }
 
-    Guid.GUID USB_WRITER_GUID = Guid.GUID.fromString(guid);
+    Guid.GUID USB_WRITER_GUID = new Guid.GUID(guid);
 //    Guid.GUID USB_WRITER_GUID = GUID_DEVINTERFACE_USB_DEVICE;
 //    Guid.GUID USB_WRITER_GUID = new Guid.GUID("{4d36e96b-e325-11ce-bfc1-08002be10318}");
 
@@ -162,7 +161,7 @@ public class StenographMachine {
 
 
         // Access device interface detail information as needed
-        String devicePath = new String(dev_detail_data_ptr.DevicePath);
+        String devicePath = new String(dev_detail_data_ptr._DevicePath);
 
         System.out.println("okay, creating file, device path: " + devicePath);
 

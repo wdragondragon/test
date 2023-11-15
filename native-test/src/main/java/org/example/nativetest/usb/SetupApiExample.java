@@ -1,15 +1,12 @@
 package org.example.nativetest.usb;
 
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.Guid;
-import com.sun.jna.platform.win32.SetupApi;
 import com.sun.jna.platform.win32.WinDef;
 
 import com.sun.jna.platform.win32.WinNT.HANDLE;
 import com.sun.jna.ptr.IntByReference;
-import com.sun.jna.ptr.PointerByReference;
 
 public class SetupApiExample {
     static {
@@ -37,9 +34,10 @@ public class SetupApiExample {
 //            // Add other fields as needed
 //        }
 
+        @Structure.FieldOrder({"cbSize", "_DevicePath"})
         class SP_DEVICE_INTERFACE_DETAIL_DATA_A extends Structure {
             public int cbSize;
-            public char[] DevicePath = new char[1]; // Adjust the size based on your requirements
+            public char[] _DevicePath = new char[1]; // Adjust the size based on your requirements
 
         }
 
